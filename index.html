@@ -217,6 +217,7 @@
     <h2>💾 Manual backup</h2>
     <button class="sec" id="expJson">Export JSON</button>
     <button class="sec" id="expCsv">Export CSV</button>
+    <button class="sec" id="expSum">Export summary</button>
     <label>Import JSON (merged, never overwrites newer data)</label>
     <input type="file" id="imp" accept="application/json">
   </section>
@@ -296,7 +297,7 @@ function showTab(t) {
 document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.goto)));
 </script>
-<script src="chart.umd.js?v=7"></script>
-<script src="app.js?v=7"></script>
+<script src="chart.umd.js?v=8"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

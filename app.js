@@ -497,10 +497,44 @@ function download(name, text, type) {
 }
 $('expJson').onclick = () => download(`meal-tracker-${ymd(new Date())}.json`, JSON.stringify(data, null, 1), 'application/json');
 $('expCsv').onclick = () => {
-  const cols = ['date', 'breakfast', 'acv', 'lunch', 'dinner', 'extra', 'weight', 'fasting_hours', 'bed', 'wake', 'sleep_hours', 'mood', 'hunger', 'notes'];
+  const cols = ['date', 'day_number', 'weekday', 'breakfast', 'acv', 'lunch', 'dinner', 'extra', 'last_intake', 'eating_window_hours', 'fasting_hours', 'fasting_zone', 'dinner_by_goal', 'weight', 'weight_change_vs_prev', 'weight_change_since_start', 'to_target_kg', 'bed', 'wake', 'sleep_hours', 'sleep_goal_met', 'mood', 'hunger', 'notes'];
   const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const rows = live().map(d => { const e = data.days[d], h = fastingHours(d); return [d, e.breakfast, e.acv ? 1 : 0, e.lunch, e.dinner, e.extra, e.weight, h === null ? '' : h.toFixed(2), e.bed, e.wake, (() => { const i = sleepInfo(e); return i ? i.h.toFixed(2) : ''; })(), e.mood, e.hunger, e.notes].map(q).join(','); });
+  const days = live(), s = S(), start = days[0];
+  const w0 = days.map(d => data.days[d].weight).find(w => w != null && w !== '');
+  const gh = sleepGoalH();
+  let pw = null;
+  const rows = days.map(d => {
+    const e = data.days[d], h = fastingHours(d), si = sleepInfo(e), lm = lastMeal(e), w = e.weight != null && e.weight !== '' ? +e.weight : null;
+    const first = e.breakfast || e.lunch || e.dinner;
+    const win = first && lm ? Math.max(0, hm(lm) - hm(first)) : null;
+    const row = [d, Math.round((new Date(d) - new Date(start)) / 864e5) + 1, new Date(d + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' }),
+      e.breakfast, e.acv ? 1 : 0, e.lunch, e.dinner, e.extra, lm, win === null ? '' : win.toFixed(2),
+      h === null ? '' : h.toFixed(2), h === null ? '' : zone(h).t,
+      e.dinner ? (hm(e.dinner) <= s.dinnerGoal ? 'yes' : 'no') : '',
+      w ?? '', w !== null && pw !== null ? (w - pw).toFixed(2) : '', w !== null && w0 != null ? (w - w0).toFixed(2) : '', w !== null ? (w - s.target).toFixed(2) : '',
+      e.bed, e.wake, si ? si.h.toFixed(2) : '', si ? (si.h >= gh - 0.25 ? 'yes' : 'no') : '', e.mood, e.hunger, e.notes];
+    if (w !== null) pw = w;
+    return row.map(q).join(',');
+  });
   download(`meal-tracker-${ymd(new Date())}.csv`, [cols.join(','), ...rows].join('\n'), 'text/csv');
+};
+$('expSum').onclick = () => {
+  const days = live(), s = S(), f = allFasts().map(x => x.h);
+  const ws = days.map(d => ({ d, w: data.days[d].weight })).filter(x => x.w != null && x.w !== '').map(x => ({ d: x.d, w: +x.w }));
+  const sl = days.map(d => sleepInfo(data.days[d])).filter(Boolean).map(i => i.h);
+  const avg = a => a.length ? (a.reduce((x, y) => x + y, 0) / a.length).toFixed(2) : '';
+  const mc = {}; days.forEach(d => { const m = data.days[d].mood; if (m) mc[m] = (mc[m] || 0) + 1; });
+  const rows = [
+    ['Start date', days[0]], ['Last entry', days[days.length - 1]], ['Days logged', days.length],
+    ['Start weight kg', ws[0]?.w], ['Current weight kg', ws.length ? ws[ws.length - 1].w : ''],
+    ['Total change kg', ws.length ? (ws[ws.length - 1].w - ws[0].w).toFixed(2) : ''], ['Target weight kg', s.target],
+    ['Remaining to target kg', ws.length ? (ws[ws.length - 1].w - s.target).toFixed(2) : ''],
+    ['Fasts measured', f.length], ['Average fast h', avg(f)], ['Best fast h', f.length ? Math.max(...f).toFixed(2) : ''], ['Shortest fast h', f.length ? Math.min(...f).toFixed(2) : ''],
+    ['Fasts < ' + s.goodMin + 'h', f.filter(h => h < s.goodMin).length], ['Fasts ' + s.goodMin + '-' + s.goodMax + 'h', f.filter(h => h >= s.goodMin && h <= s.goodMax).length], ['Fasts > ' + s.goodMax + 'h', f.filter(h => h > s.goodMax).length],
+    ['ACV days', days.filter(d => data.days[d].acv).length], ['Dinner by goal days', days.filter(d => data.days[d].dinner && hm(data.days[d].dinner) <= s.dinnerGoal).length],
+    ['Average sleep h', avg(sl)], ['Sleep goal h', sleepGoalH().toFixed(2)], ...Object.entries(mc).map(([k, v]) => ['Mood: ' + k, v])
+  ];
+  download(`meal-tracker-summary-${ymd(new Date())}.csv`, ['metric,value', ...rows.map(r => `"${r[0]}","${r[1] ?? ''}"`)].join('\n'), 'text/csv');
 };
 $('imp').onchange = async ev => {
   try {
