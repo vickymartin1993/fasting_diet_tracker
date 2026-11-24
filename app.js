@@ -139,6 +139,7 @@ function renderStatus() {
 }
 
 // ---------- hero ----------
+const grad = c => `linear-gradient(145deg, ${c}, ${c}aa 60%, #6366f1)`;
 function hero() {
   const el = $('hero'), now = new Date(), today = ymd(now), te = entry(today);
   const s = S();
@@ -160,17 +161,17 @@ function hero() {
     const h = (now - last) / 36e5, z = zone(h);
     const next = h < s.goodMin ? s.goodMin : h < s.goodMax ? s.goodMax : null;
     const prog = Math.min(100, (h / s.goodMin) * 100);
-    el.style.background = z.c;
+    el.style.background = grad(z.c);
     el.innerHTML = `<div class="sub">Fasting since ${fmtClock(last)}</div><div class="big">${fmtDur(now - last)}</div>
       <div class="sub">${z.t} · ${z.msg}</div><div class="bar"><i style="width:${prog}%"></i></div>
       <div class="sub">${next ? `${fmtHM(next - h)} to ${next}h (at ${fmtClock(new Date(last.getTime() + next * 36e5))})` : 'Past your upper limit of ' + s.goodMax + 'h'}</div>
       <div class="pills">${pills.map(p => `<span>${p}</span>`).join('')}</div>`;
   } else {
     const y = fasts.length ? (fastingHours(today) !== null ? { d: today, h: fastingHours(today) } : fasts[fasts.length - 1]) : null;
-    if (!y) { el.style.background = '#475569'; el.innerHTML = `<div class="big">🍽️</div><div class="sub">Log your meals to start tracking fasts.</div>`; return; }
+    if (!y) { el.style.background = grad('#6366f1'); el.innerHTML = `<div class="big">🍽️</div><div class="sub">Log your meals to start tracking fasts.</div>`; return; }
     const z = zone(y.h);
     const l7 = fasts.slice(-7), avg = l7.reduce((a, x) => a + x.h, 0) / l7.length;
-    el.style.background = z.c;
+    el.style.background = grad(z.c);
     el.innerHTML = `<div class="sub">${y.d === today ? "Last night's fast" : 'Last fast (' + y.d + ')'}</div><div class="big">${fmtHM(y.h)}</div>
       <div class="sub">${z.t} · ${z.msg}</div>
       <div class="pills">${pills.concat([`7-day avg: ${fmtHM(avg)}`]).map(p => `<span>${p}</span>`).join('')}</div>`;
@@ -208,7 +209,7 @@ function renderCharts(dates) {
   const wt = dates.map(d => entry(d)?.weight ?? null);
   const ma = dates.map((d, i) => { const w = wt.slice(Math.max(0, i - 6), i + 1).filter(x => x !== null); return w.length ? +(w.reduce((a, b) => a + b, 0) / w.length).toFixed(2) : null; });
   draw('weightChart', { type: 'line', data: { labels: dates, datasets: [
-    { label: 'Weight', data: wt, borderColor: '#2563eb', backgroundColor: '#2563eb', spanGaps: true, tension: .2, pointRadius: 3 },
+    { label: 'Weight', data: wt, borderColor: '#6366f1', backgroundColor: '#6366f1', spanGaps: true, tension: .2, pointRadius: 3 },
     line('7-day avg', ma, '#f59e0b'), line('Target ' + s.target, fill(s.target), '#22c55e', [6, 4])] },
     options: { plugins: { legend: { display: true } } } });
   charts.weightChart.data.datasets[1].spanGaps = true;

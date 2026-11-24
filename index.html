@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#2563eb">
+<meta name="theme-color" content="#6366f1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Fasting & Weight Tracker</title>
@@ -11,54 +11,64 @@
 <link rel="icon" href="icon.svg">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
-  :root{--bg:#f3f4f6;--card:#fff;--fg:#1f2937;--muted:#6b7280;--line:#e5e7eb;--accent:#2563eb}
-  :root[data-theme=dark]{--bg:#0f172a;--card:#1e293b;--fg:#e5e7eb;--muted:#94a3b8;--line:#334155;--accent:#60a5fa}
-  *{box-sizing:border-box}
+  :root{--bg:#eef2ff;--bg2:#fdf2f8;--card:#ffffff;--fg:#1e1b4b;--muted:#6b7280;--line:#e5e7f5;--accent:#6366f1;--accent2:#8b5cf6;--soft:#f5f3ff}
+  :root[data-theme=dark]{--bg:#0b1020;--bg2:#1a1033;--card:#171d33;--fg:#eef0ff;--muted:#9aa3c7;--line:#2a3354;--accent:#818cf8;--accent2:#a78bfa;--soft:#1f2747}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html{font-size:18px}
-  body{font-family:system-ui,sans-serif;max-width:760px;margin:0 auto;padding:12px 12px calc(84px + env(safe-area-inset-bottom));background:var(--bg);color:var(--fg);line-height:1.4}
-  header{display:flex;justify-content:space-between;align-items:center}
-  h1{font-size:1.25rem;margin:6px 0} h2{font-size:1.1rem;margin:0 0 10px} h3{font-size:1rem;margin:16px 0 6px}
-  section.card-s,.page>section{background:var(--card);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px #0002}
-  .page{display:none} .page.on{display:block}
-  label{display:block;margin:10px 0 4px;font-size:.85rem;color:var(--muted)}
-  input,select,textarea{padding:12px;width:100%;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:10px;font:inherit}
-  input[type=checkbox]{width:24px;height:24px;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;max-width:760px;margin:0 auto;padding:12px 14px calc(92px + env(safe-area-inset-bottom));background:linear-gradient(160deg,var(--bg),var(--bg2)) fixed;color:var(--fg);line-height:1.4;min-height:100vh}
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  h1{font-size:1.3rem;margin:6px 0;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--accent2),#ec4899);-webkit-background-clip:text;background-clip:text;color:transparent}
+  h2{font-size:1.1rem;margin:0 0 12px;font-weight:700} h3{font-size:1rem;margin:16px 0 6px}
+  .page>section{background:var(--card);border-radius:20px;padding:18px;margin-bottom:16px;box-shadow:0 6px 20px #6366f11a,0 1px 3px #0001;border:1px solid var(--line)}
+  .page{display:none} .page.on{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  label{display:block;margin:10px 0 5px;font-size:.82rem;color:var(--muted);font-weight:600}
+  input,select,textarea{padding:13px;width:100%;background:var(--soft);color:var(--fg);border:2px solid transparent;border-radius:14px;font:inherit;transition:border .15s,background .15s}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);background:var(--card)}
+  input[type=checkbox]{width:26px;height:26px;padding:0;accent-color:var(--accent)}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .grid .full{grid-column:1/-1}
   .inl{display:flex;gap:8px;align-items:center}
-  button{padding:12px 16px;margin:10px 8px 0 0;border:0;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer;font:inherit;font-weight:600}
-  button.sec{background:#6b7280} button.mini{padding:8px 12px;margin:0}
-  button.chip{background:var(--line);color:var(--fg);margin:0 4px 0 0;font-weight:500} button.chip.on{background:var(--accent);color:#fff}
-  button.nowb{padding:2px 10px;margin:0 0 0 6px;font-size:.8rem;background:var(--line);color:var(--fg)}
-  .warn{color:#b45309;font-size:.85rem} .bad{color:#dc2626;font-size:.85rem}
-  #banner{display:none;padding:12px;border-radius:10px;background:#fef3c7;color:#78350f;margin:8px 0 12px;font-size:.85rem}
-  #banner.err{background:#fee2e2;color:#7f1d1d}
+  button{padding:13px 18px;margin:10px 8px 0 0;border:0;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;cursor:pointer;font:inherit;font-weight:700;box-shadow:0 4px 12px #6366f155;transition:transform .1s}
+  button:active{transform:scale(.96)}
+  button.sec{background:var(--soft);color:var(--fg);box-shadow:none;border:1px solid var(--line)} button.mini{padding:9px 13px;margin:0}
+  button.chip{background:var(--soft);color:var(--fg);margin:0 4px 0 0;font-weight:600;box-shadow:none} button.chip.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 3px 8px #6366f155}
+  button.nowb{padding:3px 11px;margin:0 0 0 6px;font-size:.78rem;background:#dcfce7;color:#166534;box-shadow:none}
+  button#del{background:#fee2e2;color:#991b1b;box-shadow:none}
+  .warn{color:#b45309;font-size:.85rem;font-weight:600} .bad{color:#dc2626;font-size:.85rem;font-weight:600}
+  #banner{display:none;padding:13px 15px;border-radius:16px;background:linear-gradient(135deg,#fef3c7,#fde68a);color:#78350f;margin:8px 0 14px;font-size:.85rem;font-weight:600}
+  #banner.err{background:linear-gradient(135deg,#fee2e2,#fecaca);color:#7f1d1d}
   #status{font-size:.85rem;color:var(--muted)}
-  #hero{text-align:center;color:#fff;transition:background .4s;border-radius:14px;padding:22px 14px;margin-bottom:14px}
-  #hero .big{font-size:3.2rem;font-weight:700;font-variant-numeric:tabular-nums;margin:6px 0}
+  #hero{text-align:center;color:#fff;transition:background .4s;border-radius:26px;padding:28px 16px;margin-bottom:16px;box-shadow:0 12px 30px #0003;position:relative;overflow:hidden}
+  #hero::after{content:"";position:absolute;right:-50px;top:-50px;width:180px;height:180px;border-radius:50%;background:#ffffff22}
+  #hero::before{content:"";position:absolute;left:-40px;bottom:-60px;width:150px;height:150px;border-radius:50%;background:#ffffff15}
+  #hero>*{position:relative;z-index:1}
+  #hero .big{font-size:3.4rem;font-weight:800;font-variant-numeric:tabular-nums;margin:6px 0;text-shadow:0 2px 10px #0003}
   #hero .sub{opacity:.95;font-size:1rem;margin:2px 0}
-  #hero .bar{height:10px;background:#fff4;border-radius:5px;margin:12px auto;max-width:420px;overflow:hidden}
-  #hero .bar i{display:block;height:100%;background:#fff}
-  #hero .pills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px}
-  #hero .pills span{background:#0003;padding:5px 12px;border-radius:16px;font-size:.85rem}
+  #hero .bar{height:12px;background:#ffffff40;border-radius:6px;margin:14px auto;max-width:420px;overflow:hidden}
+  #hero .bar i{display:block;height:100%;background:#fff;border-radius:6px}
+  #hero .pills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+  #hero .pills span{background:#ffffff33;backdrop-filter:blur(4px);padding:6px 13px;border-radius:18px;font-size:.85rem;font-weight:600}
   .cards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .card{background:var(--bg);border-radius:10px;padding:10px;text-align:center}
-  .card b{display:block;font-size:1.3rem} .card small{color:var(--muted);font-size:.75rem}
+  .card{background:var(--soft);border-radius:16px;padding:12px;text-align:center;border:1px solid var(--line)}
+  .card b{display:block;font-size:1.35rem;font-weight:800;color:var(--accent)} .card small{color:var(--muted);font-size:.75rem;font-weight:600}
   .legend span{display:inline-block;margin-right:10px;font-size:.8rem}
   .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px}
   table{border-collapse:collapse;width:100%;font-size:.8rem}
-  td,th{border-bottom:1px solid var(--line);padding:8px 5px;text-align:left}
-  tr.clk{cursor:pointer}
+  th{color:var(--muted);font-weight:700} td,th{border-bottom:1px solid var(--line);padding:10px 5px;text-align:left}
+  tr.clk{cursor:pointer} tr.clk:active{background:var(--soft)}
   .chartbox{position:relative;height:280px}
-  details summary{cursor:pointer;font-weight:600;padding:8px 0}
-  nav{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:10}
-  nav .tabs{display:flex;width:100%;max-width:760px}
-  nav button{flex:1;margin:0;border-radius:0;background:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.7rem;font-weight:500;padding:8px 2px}
-  nav button span{font-size:1.4rem;line-height:1}
-  nav button.on{color:var(--accent);font-weight:700}
-  .help ol,.help ul{padding-left:1.2rem;margin:6px 0} .help li{margin:5px 0} .help p{margin:6px 0}
-  .help code{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:.85em}
-  #installBox{display:none}
+  details summary{cursor:pointer;font-weight:700;padding:10px 0;color:var(--accent)}
+  nav{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));display:flex;justify-content:center;z-index:10;pointer-events:none}
+  nav .tabs{display:flex;width:100%;max-width:736px;background:var(--card);border-radius:26px;padding:6px;box-shadow:0 10px 30px #1e1b4b33;border:1px solid var(--line);pointer-events:auto}
+  nav button{flex:1;margin:0;border-radius:20px;background:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:1px;font-size:.68rem;font-weight:600;padding:7px 2px;box-shadow:none}
+  nav button span{font-size:1.35rem;line-height:1}
+  nav button.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 4px 12px #6366f166}
+  .help ol,.help ul{padding-left:1.2rem;margin:6px 0} .help li{margin:6px 0} .help p{margin:6px 0}
+  .help a{color:var(--accent);font-weight:600}
+  .help code{background:var(--soft);padding:1px 6px;border-radius:6px;font-size:.85em}
+  #installBox{display:none;background:linear-gradient(135deg,#6366f1,#ec4899)!important;color:#fff;border:0!important}
+  #installBox button{background:#fff;color:#4338ca;box-shadow:none}
 </style>
 </head>
 <body>
@@ -72,7 +82,7 @@
 <div class="page on" id="p-home">
   <div id="hero"></div>
   <section>
-    <h2>Log a day</h2>
+    <h2>📝 Log a day</h2>
     <div class="inl">
       <button class="sec mini" id="prev">◀</button>
       <input type="date" id="date">
@@ -106,23 +116,23 @@
 <div class="page" id="p-charts">
   <section>
     <div class="inl" style="justify-content:space-between;flex-wrap:wrap">
-      <h2>Overview</h2>
+      <h2>✨ Overview</h2>
       <div id="ranges"><button class="chip mini" data-r="7">7d</button><button class="chip mini" data-r="30">30d</button><button class="chip mini" data-r="90">90d</button><button class="chip mini" data-r="0">All</button></div>
     </div>
     <div class="cards" id="cards"></div>
   </section>
   <section>
-    <h2>Fasting hours</h2>
+    <h2>⏱️ Fasting hours</h2>
     <div class="legend" id="legend"></div>
     <div class="chartbox"><canvas id="fastChart"></canvas></div>
   </section>
-  <section><h2>Weight (kg)</h2><div class="chartbox"><canvas id="weightChart"></canvas></div></section>
-  <section><h2>Dinner time</h2><div class="chartbox"><canvas id="dinnerChart"></canvas></div></section>
+  <section><h2>⚖️ Weight (kg)</h2><div class="chartbox"><canvas id="weightChart"></canvas></div></section>
+  <section><h2>🌇 Dinner time</h2><div class="chartbox"><canvas id="dinnerChart"></canvas></div></section>
 </div>
 
 <!-- HISTORY -->
 <div class="page" id="p-history">
-  <section><h2>History (tap a row to edit)</h2><div style="overflow-x:auto"><table id="hist"></table></div></section>
+  <section><h2>📋 History (tap a row to edit)</h2><div style="overflow-x:auto"><table id="hist"></table></div></section>
 </div>
 
 <!-- SETTINGS -->
@@ -133,7 +143,7 @@
     <button id="installBtn">Install app</button>
   </section>
   <section>
-    <h2>Backup & sync</h2>
+    <h2>☁️ Backup & sync</h2>
     <div id="status"></div>
     <label>GitHub token (classic, <code>gist</code> scope only)</label>
     <input type="password" id="token" autocomplete="off">
@@ -145,7 +155,7 @@
     <p style="font-size:.8rem;color:var(--muted)">Need help? See the <b>Guide</b> tab.</p>
   </section>
   <section>
-    <h2>Targets</h2>
+    <h2>🎯 Targets</h2>
     <div class="grid">
       <div><label>Target weight (kg)</label><input type="number" id="s_target" step="0.1" inputmode="decimal"></div>
       <div><label>Baseline fast (h)</label><input type="number" id="s_base" step="0.5" inputmode="decimal"></div>
@@ -157,7 +167,7 @@
     <button id="saveTargets">Save targets</button>
   </section>
   <section>
-    <h2>Manual backup</h2>
+    <h2>💾 Manual backup</h2>
     <button class="sec" id="expJson">Export JSON</button>
     <button class="sec" id="expCsv">Export CSV</button>
     <label>Import JSON (merged, never overwrites newer data)</label>
