@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2563eb">
+<title>Fasting & Weight Tracker</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<style>
+  :root{--bg:#f3f4f6;--card:#fff;--fg:#1f2937;--muted:#6b7280;--line:#e5e7eb;--accent:#2563eb}
+  :root[data-theme=dark]{--bg:#0f172a;--card:#1e293b;--fg:#e5e7eb;--muted:#94a3b8;--line:#334155;--accent:#60a5fa}
+  *{box-sizing:border-box}
+  body{font-family:system-ui,sans-serif;max-width:960px;margin:0 auto;padding:10px;background:var(--bg);color:var(--fg)}
+  header{display:flex;justify-content:space-between;align-items:center}
+  h1{font-size:1.2rem;margin:6px 0} h2{font-size:1rem;margin:0 0 8px}
+  section{background:var(--card);border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px #0002}
+  label{display:block;margin:8px 0 2px;font-size:.85rem;color:var(--muted)}
+  input,select,textarea{padding:7px;width:100%;max-width:280px;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:6px;font:inherit}
+  textarea{max-width:100%}
+  input[type=checkbox]{width:auto}
+  .row{display:flex;gap:14px;flex-wrap:wrap}
+  .inl{display:flex;gap:6px;align-items:center}
+  button{padding:8px 13px;margin:8px 6px 0 0;border:0;border-radius:6px;background:var(--accent);color:#fff;cursor:pointer;font:inherit}
+  button.sec{background:#6b7280} button.mini{padding:4px 8px;margin:0}
+  button.chip{background:var(--line);color:var(--fg);margin:0 4px 0 0} button.chip.on{background:var(--accent);color:#fff}
+  .warn{color:#b45309;font-size:.8rem} .bad{color:#dc2626;font-size:.8rem}
+  #banner{display:none;padding:10px;border-radius:8px;background:#fef3c7;color:#78350f;margin-bottom:12px;font-size:.9rem}
+  #banner.err{background:#fee2e2;color:#7f1d1d}
+  #status{font-size:.8rem;color:var(--muted);margin-top:6px}
+  #hero{text-align:center;color:#fff;transition:background .4s}
+  #hero .big{font-size:2.8rem;font-weight:700;font-variant-numeric:tabular-nums;margin:4px 0}
+  #hero .sub{opacity:.92;font-size:.95rem;margin:2px 0}
+  #hero .bar{height:8px;background:#fff4;border-radius:4px;margin:10px auto;max-width:420px;overflow:hidden}
+  #hero .bar i{display:block;height:100%;background:#fff}
+  #hero .pills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+  #hero .pills span{background:#0003;padding:4px 10px;border-radius:14px;font-size:.85rem}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+  .card{background:var(--bg);border-radius:8px;padding:8px;text-align:center}
+  .card b{display:block;font-size:1.2rem} .card small{color:var(--muted)}
+  .legend span{display:inline-block;margin-right:10px;font-size:.78rem}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px}
+  table{border-collapse:collapse;width:100%;font-size:.8rem}
+  td,th{border-bottom:1px solid var(--line);padding:5px;text-align:left}
+  tr.clk{cursor:pointer} tr.clk:hover{background:var(--bg)}
+  .chartbox{position:relative;height:240px}
+  details summary{cursor:pointer;font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <h1>🍽️ Fasting & Weight Tracker</h1>
+  <button class="sec mini" id="theme">🌓</button>
+</header>
+<div id="banner"></div>
+
+<section id="hero"></section>
+
+<section>
+  <h2>Log a day</h2>
+  <div class="inl">
+    <button class="sec mini" id="prev">◀</button>
+    <input type="date" id="date">
+    <button class="sec mini" id="next">▶</button>
+    <button class="sec mini" id="todayBtn">Today</button>
+  </div>
+  <div class="row">
+    <div><label>Breakfast <button class="chip mini" data-now="breakfast">now</button></label><input type="time" id="breakfast">
+      <label class="inl"><input type="checkbox" id="acv"> ACV (~10 ml in 300 ml water)</label></div>
+    <div><label>Lunch (skip if none) <button class="chip mini" data-now="lunch">now</button></label><input type="time" id="lunch"></div>
+    <div><label>Dinner (by 6 pm, max 7 pm) <button class="chip mini" data-now="dinner">now</button></label><input type="time" id="dinner"><div id="dinnerMsg"></div></div>
+    <div><label>Late snack / any calories (optional) <button class="chip mini" data-now="extra">now</button></label><input type="time" id="extra"></div>
+    <div><label>Weight (kg)</label><input type="number" id="weight" step="0.1" min="0"></div>
+  </div>
+  <details><summary>Energy, hunger, sleep, notes</summary>
+    <div class="row">
+      <div><label>Energy (1–5)</label><select id="energy"><option value=""></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+      <div><label>Hunger (1–5)</label><select id="hunger"><option value=""></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+      <div><label>Sleep (hours)</label><input type="number" id="sleep" step="0.5" min="0" max="24"></div>
+    </div>
+    <label>Notes</label><textarea id="notes" rows="2"></textarea>
+  </details>
+  <button id="save">Save entry</button>
+  <button class="sec" id="del">Delete entry</button>
+  <div id="saveMsg" class="warn"></div>
+  <div style="font-size:.78rem;color:var(--muted);margin-top:6px">Water, black coffee, green tea and ACV don't break the fast.</div>
+</section>
+
+<section>
+  <div class="inl" style="justify-content:space-between;flex-wrap:wrap">
+    <h2>Overview</h2>
+    <div id="ranges"><button class="chip" data-r="7">7d</button><button class="chip" data-r="30">30d</button><button class="chip" data-r="90">90d</button><button class="chip" data-r="0">All</button></div>
+  </div>
+  <div class="cards" id="cards"></div>
+</section>
+
+<section>
+  <h2>Fasting hours</h2>
+  <div class="legend" id="legend"></div>
+  <div class="chartbox"><canvas id="fastChart"></canvas></div>
+</section>
+<section><h2>Weight (kg)</h2><div class="chartbox"><canvas id="weightChart"></canvas></div></section>
+<section><h2>Dinner time</h2><div class="chartbox"><canvas id="dinnerChart"></canvas></div></section>
+
+<section><h2>History (tap a row to edit)</h2><div style="overflow-x:auto"><table id="hist"></table></div></section>
+
+<section>
+  <h2>Backup & sync</h2>
+  <div id="status"></div>
+  <label>GitHub token (classic PAT, <code>gist</code> scope only). Stored only in this browser. Keep a copy in a password manager.</label>
+  <input type="password" id="token" autocomplete="off">
+  <label>Gist ID (auto-detected; on a new phone just enter the token)</label>
+  <input type="text" id="gistId">
+  <div>
+    <button id="saveSettings">Save & sync</button>
+    <button class="sec" id="syncNow">Sync now</button>
+    <button class="sec" id="forget">Forget token</button>
+  </div>
+  <h2 style="margin-top:16px">Targets</h2>
+  <div class="row">
+    <div><label>Target weight (kg)</label><input type="number" id="s_target" step="0.1"></div>
+    <div><label>Baseline fast (h)</label><input type="number" id="s_base" step="0.5"></div>
+    <div><label>Good from (h)</label><input type="number" id="s_goodMin" step="0.5"></div>
+    <div><label>Good until (h) – above is riskier</label><input type="number" id="s_goodMax" step="0.5"></div>
+    <div><label>Dinner goal (hour, 24h)</label><input type="number" id="s_dinnerGoal" step="0.25"></div>
+    <div><label>Dinner limit (hour, 24h)</label><input type="number" id="s_dinnerMax" step="0.25"></div>
+  </div>
+  <button id="saveTargets">Save targets</button>
+  <h2 style="margin-top:16px">Manual backup</h2>
+  <button class="sec" id="expJson">Export JSON</button>
+  <button class="sec" id="expCsv">Export CSV</button>
+  <label style="display:inline-block;margin-top:8px">Import JSON (merged, never overwrites newer data)</label>
+  <input type="file" id="imp" accept="application/json">
+</section>
+
+<script src="chart.umd.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
