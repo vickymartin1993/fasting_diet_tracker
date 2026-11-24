@@ -26,14 +26,15 @@
   input,select,textarea{padding:13px;width:100%;background:var(--soft);color:var(--fg);border:2px solid transparent;border-radius:14px;font:inherit;transition:border .15s,background .15s}
   input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);background:var(--card)}
   input[type=checkbox]{width:26px;height:26px;padding:0;accent-color:var(--accent)}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
   .grid .full{grid-column:1/-1}
   .inl{display:flex;gap:8px;align-items:center}
   button{padding:13px 18px;margin:10px 8px 0 0;border:0;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;cursor:pointer;font:inherit;font-weight:700;box-shadow:0 4px 12px #6366f155;transition:transform .1s}
   button:active{transform:scale(.96)}
   button.sec{background:var(--soft);color:var(--fg);box-shadow:none;border:1px solid var(--line)} button.mini{padding:9px 13px;margin:0}
   button.chip{background:var(--soft);color:var(--fg);margin:0 4px 0 0;font-weight:600;box-shadow:none} button.chip.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 3px 8px #6366f155}
-  button.nowb{padding:3px 11px;margin:0 0 0 6px;font-size:.78rem;background:#dcfce7;color:#166534;box-shadow:none}
+  .trow{display:flex;gap:6px;align-items:center}.trow input::-webkit-calendar-picker-indicator{display:none}.trow input{flex:1;min-width:0;padding-left:8px;padding-right:6px;font-size:.95rem}
+  button.nowb{padding:0;margin:0;width:40px;height:40px;flex:none;font-size:1.2rem;background:#dcfce7;color:#166534;box-shadow:none;border-radius:12px}
   button#del{background:#fee2e2;color:#991b1b;box-shadow:none}
   .warn{color:#b45309;font-size:.85rem;font-weight:600} .bad{color:#dc2626;font-size:.85rem;font-weight:600}
   #banner{display:none;padding:13px 15px;border-radius:16px;background:linear-gradient(135deg,#fef3c7,#fde68a);color:#78350f;margin:8px 0 14px;font-size:.85rem;font-weight:600}
@@ -108,13 +109,13 @@
       <input type="date" id="date">
       <button class="sec mini" id="next">▶</button>
     </div>
-    <div class="inl" style="margin-top:8px"><button class="sec mini" id="todayBtn">Today</button><span id="dayBadge" class="daybadge"></span></div>
+    <button id="todayBtn" class="daybadge" style="margin-top:8px;border:0;box-shadow:none"></button>
     <div class="grid">
-      <div><label>Breakfast<button class="nowb" data-now="breakfast">now</button></label><input type="time" id="breakfast"></div>
-      <div><label>Lunch (skip if none)<button class="nowb" data-now="lunch">now</button></label><input type="time" id="lunch"></div>
+      <div><label>Breakfast</label><div class="trow"><input type="time" id="breakfast"><button class="nowb" data-now="breakfast" title="Fill current time">⏱</button></div></div>
+      <div><label>Lunch (skip if none)</label><div class="trow"><input type="time" id="lunch"><button class="nowb" data-now="lunch" title="Fill current time">⏱</button></div></div>
       <div class="full inl" style="margin-top:6px"><input type="checkbox" id="acv" style="width:24px"><label for="acv" style="margin:0;color:var(--fg)">ACV taken (~10 ml in 300 ml water)</label></div>
-      <div><label>Dinner (by 6 pm, max 7 pm)<button class="nowb" data-now="dinner">now</button></label><input type="time" id="dinner"><div id="dinnerMsg"></div></div>
-      <div><label>Late snack (optional)<button class="nowb" data-now="extra">now</button></label><input type="time" id="extra"></div>
+      <div><label>Dinner (by 6 pm, max 7 pm)</label><div class="trow"><input type="time" id="dinner"><button class="nowb" data-now="dinner" title="Fill current time">⏱</button></div><div id="dinnerMsg"></div></div>
+      <div><label>Late snack (optional)</label><div class="trow"><input type="time" id="extra"><button class="nowb" data-now="extra" title="Fill current time">⏱</button></div></div>
       <div class="full"><label>Weight (kg)</label><input type="number" id="weight" step="0.1" min="0" inputmode="decimal"></div>
     </div>
     <h3 style="margin-top:18px">😴 Last night's sleep</h3>
@@ -304,7 +305,7 @@ function showTab(t) {
 document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.goto)));
 </script>
-<script src="chart.umd.js?v=9"></script>
-<script src="app.js?v=9"></script>
+<script src="chart.umd.js?v=13"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>

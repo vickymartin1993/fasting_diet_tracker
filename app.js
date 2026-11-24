@@ -428,9 +428,9 @@ $('bed').oninput = $('wake').oninput = checkSleep;
 const dayKind = d => { const t = ymd(new Date()); return d === t ? 'day-today' : d < t ? 'day-past' : 'day-future'; };
 function fillForm() {
   const e = entry($('date').value) || {};
-  const k = dayKind($('date').value), b = $('dayBadge');
+  const k = dayKind($('date').value), b = $('todayBtn');
   b.className = 'daybadge ' + k;
-  b.textContent = k === 'day-today' ? '📍 Today' : k === 'day-past' ? '🕘 Past day – editing an earlier entry' : '🔮 Future day – not yet happened';
+  b.textContent = k === 'day-today' ? '📍 Today' : k === 'day-past' ? '🕘 Past day – tap to go to today' : '🔮 Future day – tap to go to today';
   $('date').className = k;
   TIMES.forEach(k => $(k).value = e[k] || '');
   $('acv').checked = !!e.acv; $('weight').value = e.weight ?? '';
