@@ -353,14 +353,7 @@ $('imp').onchange = async ev => {
 };
 
 // ---------- tabs / install ----------
-function showTab(t) {
-  document.querySelectorAll('.page').forEach(p => p.classList.toggle('on', p.id === 'p-' + t));
-  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-  localStorage.setItem('mt2-tab', t);
-  window.scrollTo(0, 0);
-  if (t === 'charts') render(); // canvases need a visible size
-}
-document.querySelectorAll('nav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+addEventListener('tabchange', e => { if (e.detail === 'charts') render(); }); // canvases need a visible size
 let deferredPrompt = null;
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);

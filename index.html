@@ -234,7 +234,17 @@
   <button data-tab="help"><span>📖</span>Guide</button>
 </div></nav>
 
-<script src="chart.umd.js"></script>
-<script src="app.js"></script>
+<script>
+// Tab navigation lives here so it keeps working even if app.js fails or is stale-cached
+function showTab(t) {
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('on', p.id === 'p-' + t));
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  window.scrollTo(0, 0);
+  dispatchEvent(new CustomEvent('tabchange', { detail: t }));
+}
+document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+</script>
+<script src="chart.umd.js?v=4"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>
