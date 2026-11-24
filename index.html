@@ -69,6 +69,16 @@
   .help code{background:var(--soft);padding:1px 6px;border-radius:6px;font-size:.85em}
   #installBox{display:none;background:linear-gradient(135deg,#6366f1,#ec4899)!important;color:#fff;border:0!important}
   #installBox button{background:#fff;color:#4338ca;box-shadow:none}
+  .pcard{background:var(--soft);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:10px}
+  .pcard .top{display:flex;justify-content:space-between;align-items:baseline}
+  .pcard .top b{font-size:1.05rem} .pcard .top small{color:var(--muted)}
+  .pcard .chg{font-size:1.5rem;font-weight:800}
+  .pcard .meta{color:var(--muted);font-size:.8rem;margin:4px 0 8px}
+  .pcard .pl{display:flex;gap:6px;flex-wrap:wrap}
+  .pcard .pl span{background:var(--card);border-radius:12px;padding:4px 10px;font-size:.78rem;font-weight:600}
+  .insight{font-size:.88rem;line-height:1.6;margin-bottom:12px}
+  .note{font-size:.75rem;color:var(--muted);margin-top:6px}
+  #hero .quote{margin:12px auto 0;max-width:440px;font-size:1.02rem;font-weight:600;font-style:italic;background:#ffffff26;border-radius:16px;padding:10px 14px}
 </style>
 </head>
 <body>
@@ -112,29 +122,33 @@
   </section>
 </div>
 
-<!-- CHARTS -->
-<div class="page" id="p-charts">
+<!-- STATS -->
+<div class="page" id="p-stats">
   <section>
     <h2>🚀 My journey</h2>
     <div class="cards" id="journey"></div>
   </section>
   <section>
     <div class="inl" style="justify-content:space-between;flex-wrap:wrap">
-      <h2>📆 Progress</h2>
-      <div id="pmode"><button class="chip mini on" data-pm="week">Weekly</button><button class="chip mini" data-pm="month">Monthly</button></div>
-    </div>
-    <div id="pinsight" style="font-size:.85rem;margin-bottom:8px"></div>
-    <div class="chartbox"><canvas id="progChart"></canvas></div>
-    <div style="overflow-x:auto;margin-top:10px"><table id="progTable"></table></div>
-    <div style="font-size:.75rem;color:var(--muted);margin-top:6px">Weight change = last weight in the period vs last weight of the previous period (first period: vs your first weigh-in). Counts are days by fasting length.</div>
-  </section>
-  <section>
-    <div class="inl" style="justify-content:space-between;flex-wrap:wrap">
       <h2>✨ Overview</h2>
-      <div id="ranges"><button class="chip mini" data-r="7">7d</button><button class="chip mini" data-r="30">30d</button><button class="chip mini" data-r="90">90d</button><button class="chip mini" data-r="0">All</button></div>
+      <div class="ranges"><button class="chip mini" data-r="7">7d</button><button class="chip mini" data-r="30">30d</button><button class="chip mini" data-r="90">90d</button><button class="chip mini" data-r="0">All</button></div>
     </div>
     <div class="cards" id="cards"></div>
   </section>
+  <section>
+    <div class="inl" style="justify-content:space-between;flex-wrap:wrap">
+      <h2>📆 Progress</h2>
+      <div class="pmode"><button class="chip mini on" data-pm="week">Weekly</button><button class="chip mini" data-pm="month">Monthly</button></div>
+    </div>
+    <div id="pinsight" class="insight"></div>
+    <div id="progList"></div>
+    <div class="note">Weight change = last weight in the period vs the last weight of the previous period (first period: vs your first weigh-in).</div>
+  </section>
+</div>
+
+<!-- CHARTS -->
+<div class="page" id="p-charts">
+  <div class="inl" style="justify-content:flex-end;margin-bottom:10px"><div class="ranges"><button class="chip mini" data-r="7">7d</button><button class="chip mini" data-r="30">30d</button><button class="chip mini" data-r="90">90d</button><button class="chip mini" data-r="0">All</button></div></div>
   <section>
     <h2>⏱️ Fasting hours</h2>
     <div class="legend" id="legend"></div>
@@ -142,6 +156,13 @@
   </section>
   <section><h2>⚖️ Weight (kg)</h2><div class="chartbox"><canvas id="weightChart"></canvas></div></section>
   <section><h2>🌇 Dinner time</h2><div class="chartbox"><canvas id="dinnerChart"></canvas></div></section>
+  <section>
+    <div class="inl" style="justify-content:space-between;flex-wrap:wrap">
+      <h2>📆 Progress</h2>
+      <div class="pmode"><button class="chip mini on" data-pm="week">Weekly</button><button class="chip mini" data-pm="month">Monthly</button></div>
+    </div>
+    <div class="chartbox"><canvas id="progChart"></canvas></div>
+  </section>
 </div>
 
 <!-- HISTORY -->
@@ -166,7 +187,7 @@
     <button id="saveSettings">Save & sync</button>
     <button class="sec" id="syncNow">Sync now</button>
     <button class="sec" id="forget">Forget token</button>
-    <p style="font-size:.8rem;color:var(--muted)">Need help? See the <b>Guide</b> tab.</p>
+    <button class="sec" data-goto="help" style="width:100%;margin-top:14px">📖 Open setup guide</button>
   </section>
   <section>
     <h2>🎯 Targets</h2>
@@ -191,11 +212,13 @@
 
 <!-- GUIDE -->
 <div class="page help" id="p-help">
+  <button class="sec mini" data-goto="settings" style="margin-bottom:12px">← Back to Settings</button>
   <section>
     <h2>📖 How to use</h2>
     <ul>
       <li><b>Home:</b> shows your live fasting timer, or last night's fast and your best. Log meals below it.</li>
-      <li><b>Charts:</b> fasting hours, weight vs target, dinner times and summary cards.</li>
+      <li><b>Stats:</b> journey so far, summary cards, and week-by-week / month-by-month progress.</li>
+      <li><b>Charts:</b> fasting hours, weight vs target, dinner times and progress bars.</li>
       <li><b>History:</b> all days; tap one to edit.</li>
       <li>Water, black coffee, green tea and ACV never break the fast.</li>
       <li>Fast colours: red &lt; 12h, amber 12–14h, green 14–16h (sweet spot), purple &gt; 16h.</li>
@@ -242,23 +265,25 @@
 
 <nav><div class="tabs">
   <button data-tab="home" class="on"><span>🏠</span>Home</button>
+  <button data-tab="stats"><span>🏆</span>Stats</button>
   <button data-tab="charts"><span>📊</span>Charts</button>
   <button data-tab="history"><span>📋</span>History</button>
   <button data-tab="settings"><span>⚙️</span>Settings</button>
-  <button data-tab="help"><span>📖</span>Guide</button>
 </div></nav>
 
 <script>
 // Tab navigation lives here so it keeps working even if app.js fails or is stale-cached
 function showTab(t) {
   document.querySelectorAll('.page').forEach(p => p.classList.toggle('on', p.id === 'p-' + t));
-  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  const navT = t === 'help' ? 'settings' : t;
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === navT));
   window.scrollTo(0, 0);
   dispatchEvent(new CustomEvent('tabchange', { detail: t }));
 }
 document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.goto)));
 </script>
-<script src="chart.umd.js?v=5"></script>
-<script src="app.js?v=5"></script>
+<script src="chart.umd.js?v=6"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>

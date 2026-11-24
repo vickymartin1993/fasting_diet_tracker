@@ -132,13 +132,44 @@ async function doSync() {
 function renderStatus() {
   $('status').textContent = syncState.msg;
   const b = $('banner');
-  if (!token()) { b.className = ''; b.style.display = 'block'; b.textContent = '⚠️ Backup is OFF. Add a GitHub token in Settings → Backup & sync (see Guide) so your data survives a phone reset or cleared browser.'; }
+  if (!token()) { b.className = ''; b.style.display = 'block'; b.textContent = '⚠️ Backup is OFF. Add a GitHub token in Settings → Backup & sync (see the setup guide there) so your data survives a phone reset or cleared browser.'; }
   else if (syncState.ok === false) { b.className = 'err'; b.style.display = 'block'; b.textContent = '⚠️ ' + syncState.msg; }
   else if (isDirty()) { b.className = ''; b.style.display = 'block'; b.textContent = 'Changes not yet backed up – syncing…'; }
   else b.style.display = 'none';
 }
 
 // ---------- hero ----------
+
+// ---------- motivation messages ----------
+// Each phase has a pool; the pick rotates daily so the same time of day never repeats the previous day's message.
+const POOLS = {
+  early: ['Fresh start – your body is switching from digesting to resting.', 'Great job closing the kitchen. Let your system relax tonight.', 'Sip some water or green tea – you are doing this. 💧', 'Every hour you wait is a vote for your goal.', 'The hardest part of the evening is just starting. Well done.', 'Calm evening, calm cravings. You have got this.', 'Brush your teeth – a clean mouth makes snacking less tempting. 🪥', 'Tonight\'s discipline is tomorrow\'s energy.'],
+  mid: ['Your insulin is dropping – fat burning is warming up. 🔥', 'Sleep is part of the fast. Rest well and let it work.', 'Cravings come in waves – this one will pass.', 'Hydrate, relax, wind down. You are on track.', 'Past the halfway point of the night. Nice work.', 'A little hunger is just your body learning a new rhythm.', 'Quiet hours, big results. Keep going.', 'You are building a habit most people never start.'],
+  deep: ['Deep in the fast – your body is tapping into stored energy. ⚡', 'Morning is near. Black coffee or green tea is fine. ☕', 'Strong willpower, {h} hours in. Be proud.', 'This is where the real progress happens.', 'Your future self says thank you.', 'Almost to the baseline – stay steady.', 'Water first, then see how you feel.', 'Consistency beats intensity. You are being consistent.'],
+  near: ['So close to the 14-hour sweet spot! 🎯', 'Just a little longer to hit the good zone.', '{h} hours done – the sweet spot is within reach.', 'Cravings peak, then fade. Ride it out.', 'Baseline crossed. Now aim for the sweet spot.', 'You have beaten the 12-hour baseline already. 👏', 'Hold on – the best part of the fast is next.', 'Stay strong, the reward is minutes away.'],
+  sweet: ['You are in the sweet spot – this is where the magic happens. ✨', 'Excellent! {h} hours of fasting and counting.', 'Perfect zone. Enjoy it and break the fast mindfully.', 'Autophagy and fat burning in full swing. 🌱', 'Smooth and steady – exactly what you planned.', 'This is what consistency looks like. 🏅', 'Feeling good? That is the fast working for you.', 'Brilliant discipline. Break your fast with something wholesome.'],
+  over: ['{h} hours – impressive, but listen to your body. Time to eat soon. 🍽️', 'You passed your upper limit. Break the fast gently.', 'Great effort! Do not push too far – have a nourishing breakfast.', 'Longer is not always better. Eat well and recover.', 'Feeling dizzy or weak? Eat now. Your health comes first.', 'Strong fast! Start with something light and protein-rich.', 'Beyond the plan – refuel with water first, then food.', 'Proud of you. Now nourish your body.'],
+  morning: ['Fast complete – start the day with a balanced breakfast. 🌅', 'Great start! Do not forget your ACV water. 🥤', 'Good morning! Eat slowly and mindfully.', 'A strong morning begins with a strong fast. ✅', 'Fuel up well – you earned it.', 'Protein first, carbs later. Easy win.', 'New day, new streak. Let us go! 🚀', 'Breakfast time – enjoy every bite.'],
+  midday: ['Lunch time – keep portions steady, not stuffed. 🥗', 'Halfway through the day. Stay hydrated! 💧', 'Skipping lunch today? An earlier dinner works great too.', 'Great pace so far. Keep it balanced.', 'Eat well now so the evening is easy.', 'Mid-day check: water, movement, good food.', 'Strong work this morning. Keep it going.', 'Take a short walk after you eat. 🚶'],
+  afternoon: ['Afternoon slump? A walk and water beat a snack. 🚶', 'Plan an early dinner – it lengthens tonight\'s fast.', 'You are on track. Think about a light, early dinner.', 'Green tea is a great afternoon friend. 🍵', 'The earlier the dinner, the longer the fast.', 'Almost time to close the kitchen. Choose well.', 'Stay consistent – the evening decides tomorrow\'s fast.', 'A small walk now, a great sleep later.'],
+  evening: ['Dinner window is open – eat before 6 pm if you can. 🍽️', 'Make dinner your last meal of the day.', 'Eat well, then close the kitchen. 🔒', 'An early dinner is your secret weapon.', 'Enjoy dinner mindfully – then you are done for the day.', 'Aim to finish before 7 pm at the latest.', 'Light dinner, long fast, happy morning.', 'Finish strong – close the kitchen after dinner.'],
+  late: ['Past the dinner window – no more snacks, you are almost done. 🌙', 'Kitchen closed. Water and tea only from here.', 'Wind down, relax, and let the fast begin.', 'Tomorrow\'s fast starts with this decision.', 'Skip the late snack – it costs you fasting hours.', 'Good night soon – the fast works while you sleep.', 'Brush your teeth, call it a day.', 'You did well today. Rest up.']
+};
+function pickMsg(pool, slot, hours) {
+  const n = new Date(), day = Math.floor((n.getTime() - n.getTimezoneOffset() * 6e4) / 864e5);
+  const arr = POOLS[pool];
+  return arr[(day * 3 + slot) % arr.length].replace('{h}', Math.floor(hours || 0));
+}
+function phaseFor(h) {
+  const s = S();
+  if (h >= s.goodMax) return 'over';
+  if (h >= s.goodMin) return 'sweet';
+  if (h >= s.base) return 'near';
+  if (h >= 8) return 'deep';
+  if (h >= 4) return 'mid';
+  return 'early';
+}
+function dayPhase(hr) { return hr < 11 ? 'morning' : hr < 14 ? 'midday' : hr < 17 ? 'afternoon' : hr < 19 ? 'evening' : 'late'; }
 const grad = c => `linear-gradient(145deg, ${c}, ${c}aa 60%, #6366f1)`;
 function hero() {
   const el = $('hero'), now = new Date(), today = ymd(now), te = entry(today);
@@ -163,7 +194,7 @@ function hero() {
     const prog = Math.min(100, (h / s.goodMin) * 100);
     el.style.background = grad(z.c);
     el.innerHTML = `<div class="sub">Fasting since ${fmtClock(last)}</div><div class="big">${fmtDur(now - last)}</div>
-      <div class="sub">${z.t} · ${z.msg}</div><div class="bar"><i style="width:${prog}%"></i></div>
+      <div class="sub">${z.t} · ${z.msg}</div><div class="quote">${pickMsg(phaseFor(h), Math.floor(h), h)}</div><div class="bar"><i style="width:${prog}%"></i></div>
       <div class="sub">${next ? `${fmtHM(next - h)} to ${next}h (at ${fmtClock(new Date(last.getTime() + next * 36e5))})` : 'Past your upper limit of ' + s.goodMax + 'h'}</div>
       <div class="pills">${pills.map(p => `<span>${p}</span>`).join('')}</div>`;
   } else {
@@ -173,7 +204,7 @@ function hero() {
     const l7 = fasts.slice(-7), avg = l7.reduce((a, x) => a + x.h, 0) / l7.length;
     el.style.background = grad(z.c);
     el.innerHTML = `<div class="sub">${y.d === today ? "Last night's fast" : 'Last fast (' + y.d + ')'}</div><div class="big">${fmtHM(y.h)}</div>
-      <div class="sub">${z.t} · ${z.msg}</div>
+      <div class="sub">${z.t} · ${z.msg}</div><div class="quote">${pickMsg(dayPhase(now.getHours()), now.getHours(), y.h)}</div>
       <div class="pills">${pills.concat([`7-day avg: ${fmtHM(avg)}`]).map(p => `<span>${p}</span>`).join('')}</div>`;
   }
 }
@@ -273,7 +304,7 @@ function periodKey(d, start) {
 }
 function renderProgress() {
   const days = live(), s = S();
-  if (!days.length) { $('journey').innerHTML = ''; $('progTable').innerHTML = ''; $('pinsight').textContent = ''; charts.progChart && charts.progChart.destroy(); return; }
+  if (!days.length) { $('journey').innerHTML = ''; $('progList').innerHTML = ''; $('pinsight').textContent = ''; charts.progChart && charts.progChart.destroy(); return; }
   const start = days[0], fasts = allFasts();
   const cnt = [0, 0, 0]; fasts.forEach(f => cnt[bucketOf(f.h)]++);
   const w = days.filter(d => data.days[d].weight);
@@ -281,7 +312,7 @@ function renderProgress() {
   const span = Math.floor((new Date(ymd(new Date()) + 'T12:00:00') - new Date(start + 'T12:00:00')) / 864e5) + 1;
   const b = buckets();
   const pc = n => fasts.length ? Math.round(100 * n / fasts.length) + '%' : '';
-  const J = [['Started', start, `day ${span}`], ['Days logged', days.length, `${fasts.length} fasts measured`],
+  const J = [['Started', new Date(start + 'T12:00:00').toLocaleDateString([], { day: 'numeric', month: 'short', year: '2-digit' }), `day ${span}`], ['Days logged', days.length, `${fasts.length} fasts measured`],
     ['Fasts ' + b[0], cnt[0], pc(cnt[0])], ['Fasts ' + b[1], cnt[1], pc(cnt[1])], ['Fasts ' + b[2], cnt[2], pc(cnt[2])],
     ['Total change', w0 === null ? '–' : (w1 - w0 > 0 ? '+' : '') + (w1 - w0).toFixed(1) + ' kg', w0 === null ? '' : `${w0} → ${w1} kg`]];
   $('journey').innerHTML = J.map(x => `<div class="card"><small>${x[0]}</small><b>${x[1]}</b><small>${x[2]}</small></div>`).join('');
@@ -302,8 +333,13 @@ function renderProgress() {
   });
   const label = p => pmode === 'month' ? new Date(p.k + '-15T12:00:00').toLocaleDateString([], { month: 'short', year: '2-digit' }) : p.k;
   const sg = v => v === null ? '–' : `<b style="color:${v <= 0 ? '#16a34a' : '#dc2626'}">${v > 0 ? '+' : ''}${v.toFixed(1)}</b>`;
-  $('progTable').innerHTML = `<tr><th>${pmode === 'month' ? 'Month' : 'Week'}</th><th>Days</th><th>Avg fast</th><th>${b[0]}</th><th>${b[1]}</th><th>${b[2]}</th><th>Change kg</th><th>Total kg</th></tr>` +
-    rows.slice().reverse().map(p => `<tr><td>${label(p)}<br><small style="color:var(--muted)">${p.first.slice(5)}</small></td><td>${p.days.length}</td><td>${p.avg === null ? '–' : fmtHM(p.avg)}</td><td>${p.c[0]}</td><td>${p.c[1]}</td><td>${p.c[2]}</td><td>${sg(p.change)}</td><td>${sg(p.cum)}</td></tr>`).join('');
+  $('progList').innerHTML = rows.slice().reverse().map(p => {
+    const col = v => v === null ? 'var(--muted)' : v <= 0 ? '#16a34a' : '#dc2626';
+    const txt = v => v === null ? '–' : `${v > 0 ? '+' : ''}${v.toFixed(1)} kg`;
+    return `<div class="pcard"><div class="top"><div><b>${label(p)}</b> <small>from ${p.first.slice(5)}</small></div><span class="chg" style="color:${col(p.change)}">${txt(p.change)}</span></div>
+      <div class="meta">Total so far ${txt(p.cum)} · Avg fast ${p.avg === null ? '–' : fmtHM(p.avg)} · ${p.days.length} days logged</div>
+      <div class="pl"><span>🔴 ${b[0]}: ${p.c[0]}</span><span>🟢 ${b[1]}: ${p.c[1]}</span><span>🟣 ${b[2]}: ${p.c[2]}</span></div></div>`;
+  }).join('');
 
   const withChange = rows.filter(p => p.change !== null);
   let msg = '';
@@ -319,12 +355,12 @@ function renderProgress() {
     { type: 'line', label: 'Avg fast (h)', data: rows.map(p => p.avg === null ? null : +p.avg.toFixed(2)), borderColor: '#8b5cf6', backgroundColor: '#8b5cf6', yAxisID: 'y2', tension: .25 }] },
     options: { scales: { y: { title: { display: true, text: 'kg' } }, y2: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'fast h' } } } } });
 }
-document.querySelectorAll('#pmode button').forEach(b => b.onclick = () => { pmode = b.dataset.pm; localStorage.setItem('mt2-pmode', pmode); render(); });
+document.querySelectorAll('.pmode button').forEach(b => b.onclick = () => { pmode = b.dataset.pm; localStorage.setItem('mt2-pmode', pmode); render(); });
 
 function render() {
   const dates = rangeDates();
-  document.querySelectorAll('#ranges button').forEach(b => b.classList.toggle('on', +b.dataset.r === rangeDays));
-  document.querySelectorAll('#pmode button').forEach(b => b.classList.toggle('on', b.dataset.pm === pmode));
+  document.querySelectorAll('.ranges button').forEach(b => b.classList.toggle('on', +b.dataset.r === rangeDays));
+  document.querySelectorAll('.pmode button').forEach(b => b.classList.toggle('on', b.dataset.pm === pmode));
   renderCards(dates); renderCharts(dates); renderProgress(); renderHistory(); hero(); renderStatus();
 }
 
@@ -371,7 +407,7 @@ $('prev').onclick = () => { $('date').value = addDays($('date').value, -1); fill
 $('next').onclick = () => { $('date').value = addDays($('date').value, 1); fillForm(); };
 $('todayBtn').onclick = () => { $('date').value = ymd(new Date()); fillForm(); };
 document.querySelectorAll('[data-now]').forEach(b => b.onclick = () => { const n = new Date(); $(b.dataset.now).value = `${pad(n.getHours())}:${pad(n.getMinutes())}`; checkDinner(); });
-document.querySelectorAll('#ranges button').forEach(b => b.onclick = () => { rangeDays = +b.dataset.r; localStorage.setItem('mt2-range', rangeDays); render(); });
+document.querySelectorAll('.ranges button').forEach(b => b.onclick = () => { rangeDays = +b.dataset.r; localStorage.setItem('mt2-range', rangeDays); render(); });
 
 // ---------- settings / backup ----------
 function fillSettings() {
@@ -413,7 +449,7 @@ $('imp').onchange = async ev => {
 };
 
 // ---------- tabs / install ----------
-addEventListener('tabchange', e => { if (e.detail === 'charts') render(); }); // canvases need a visible size
+addEventListener('tabchange', e => { if (e.detail === 'charts' || e.detail === 'stats') render(); }); // canvases need a visible size
 let deferredPrompt = null;
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -439,7 +475,12 @@ $('date').value = ymd(new Date());
 $('token').value = token() || ''; $('gistId').value = gistId() || '';
 fillSettings(); render(); fillForm();
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
-if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js');
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  const hadController = !!navigator.serviceWorker.controller; let reloaded = false;
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' });
+  // a new version took over: reload once so the page and scripts match
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !reloaded) { reloaded = true; location.reload(); } });
+}
 setInterval(hero, 1000);
 setInterval(sync, 5 * 60 * 1000);
 addEventListener('online', sync);
