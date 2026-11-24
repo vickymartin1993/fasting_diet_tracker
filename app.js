@@ -262,10 +262,70 @@ function renderHistory() {
   document.querySelectorAll('#hist tr.clk').forEach(tr => tr.onclick = () => { $('date').value = tr.dataset.d; fillForm(); showTab('home'); });
 }
 
+
+// ---------- journey & weekly/monthly progress ----------
+let pmode = localStorage.getItem('mt2-pmode') || 'week';
+const buckets = () => { const s = S(); return [`<${s.goodMin}h`, `${s.goodMin}–<${s.goodMax}h`, `${s.goodMax}h+`]; };
+const bucketOf = h => { const s = S(); return h < s.goodMin ? 0 : h < s.goodMax ? 1 : 2; };
+function periodKey(d, start) {
+  if (pmode === 'month') return d.slice(0, 7);
+  return 'W' + (Math.floor((new Date(d + 'T12:00:00') - new Date(start + 'T12:00:00')) / 864e5 / 7) + 1);
+}
+function renderProgress() {
+  const days = live(), s = S();
+  if (!days.length) { $('journey').innerHTML = ''; $('progTable').innerHTML = ''; $('pinsight').textContent = ''; charts.progChart && charts.progChart.destroy(); return; }
+  const start = days[0], fasts = allFasts();
+  const cnt = [0, 0, 0]; fasts.forEach(f => cnt[bucketOf(f.h)]++);
+  const w = days.filter(d => data.days[d].weight);
+  const w0 = w.length ? data.days[w[0]].weight : null, w1 = w.length ? data.days[w[w.length - 1]].weight : null;
+  const span = Math.floor((new Date(ymd(new Date()) + 'T12:00:00') - new Date(start + 'T12:00:00')) / 864e5) + 1;
+  const b = buckets();
+  const pc = n => fasts.length ? Math.round(100 * n / fasts.length) + '%' : '';
+  const J = [['Started', start, `day ${span}`], ['Days logged', days.length, `${fasts.length} fasts measured`],
+    ['Fasts ' + b[0], cnt[0], pc(cnt[0])], ['Fasts ' + b[1], cnt[1], pc(cnt[1])], ['Fasts ' + b[2], cnt[2], pc(cnt[2])],
+    ['Total change', w0 === null ? '–' : (w1 - w0 > 0 ? '+' : '') + (w1 - w0).toFixed(1) + ' kg', w0 === null ? '' : `${w0} → ${w1} kg`]];
+  $('journey').innerHTML = J.map(x => `<div class="card"><small>${x[0]}</small><b>${x[1]}</b><small>${x[2]}</small></div>`).join('');
+
+  const P = {}, order = [];
+  days.forEach(d => { const k = periodKey(d, start); if (!P[k]) { P[k] = { k, days: [], fasts: [], c: [0, 0, 0], dinners: [], wLast: null, first: d }; order.push(k); } P[k].days.push(d); });
+  fasts.forEach(f => { const p = P[periodKey(f.d, start)]; if (p) { p.fasts.push(f.h); p.c[bucketOf(f.h)]++; } });
+  order.forEach(k => { const p = P[k]; p.days.forEach(d => { const e = data.days[d]; if (e.weight) p.wLast = e.weight; if (e.dinner) p.dinners.push(hm(e.dinner)); }); });
+  let prev = w0, cum = null;
+  const rows = order.map(k => {
+    const p = P[k];
+    p.change = p.wLast !== null && prev !== null ? p.wLast - prev : null;
+    p.cum = p.wLast !== null && w0 !== null ? p.wLast - w0 : null;
+    p.avg = p.fasts.length ? p.fasts.reduce((a, x) => a + x, 0) / p.fasts.length : null;
+    p.dAvg = p.dinners.length ? p.dinners.reduce((a, x) => a + x, 0) / p.dinners.length : null;
+    if (p.wLast !== null) prev = p.wLast;
+    return p;
+  });
+  const label = p => pmode === 'month' ? new Date(p.k + '-15T12:00:00').toLocaleDateString([], { month: 'short', year: '2-digit' }) : p.k;
+  const sg = v => v === null ? '–' : `<b style="color:${v <= 0 ? '#16a34a' : '#dc2626'}">${v > 0 ? '+' : ''}${v.toFixed(1)}</b>`;
+  $('progTable').innerHTML = `<tr><th>${pmode === 'month' ? 'Month' : 'Week'}</th><th>Days</th><th>Avg fast</th><th>${b[0]}</th><th>${b[1]}</th><th>${b[2]}</th><th>Change kg</th><th>Total kg</th></tr>` +
+    rows.slice().reverse().map(p => `<tr><td>${label(p)}<br><small style="color:var(--muted)">${p.first.slice(5)}</small></td><td>${p.days.length}</td><td>${p.avg === null ? '–' : fmtHM(p.avg)}</td><td>${p.c[0]}</td><td>${p.c[1]}</td><td>${p.c[2]}</td><td>${sg(p.change)}</td><td>${sg(p.cum)}</td></tr>`).join('');
+
+  const withChange = rows.filter(p => p.change !== null);
+  let msg = '';
+  if (withChange.length) {
+    const best = withChange.reduce((m, p) => p.change < m.change ? p : m), worst = withChange.reduce((m, p) => p.change > m.change ? p : m);
+    msg = `✅ Best: <b>${label(best)}</b> (${best.change.toFixed(1)} kg${best.avg ? ', avg fast ' + fmtHM(best.avg) : ''})`;
+    if (worst !== best) msg += `<br>⚠️ Toughest: <b>${label(worst)}</b> (${worst.change > 0 ? '+' : ''}${worst.change.toFixed(1)} kg${worst.avg ? ', avg fast ' + fmtHM(worst.avg) : ''})`;
+  }
+  $('pinsight').innerHTML = msg;
+  Chart.defaults.color = css('--muted'); Chart.defaults.borderColor = css('--line');
+  draw('progChart', { type: 'bar', data: { labels: rows.map(label), datasets: [
+    { label: 'Change (kg)', data: rows.map(p => p.change === null ? null : +p.change.toFixed(2)), backgroundColor: rows.map(p => p.change === null ? '#0000' : p.change <= 0 ? '#22c55e' : '#ef4444'), yAxisID: 'y' },
+    { type: 'line', label: 'Avg fast (h)', data: rows.map(p => p.avg === null ? null : +p.avg.toFixed(2)), borderColor: '#8b5cf6', backgroundColor: '#8b5cf6', yAxisID: 'y2', tension: .25 }] },
+    options: { scales: { y: { title: { display: true, text: 'kg' } }, y2: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'fast h' } } } } });
+}
+document.querySelectorAll('#pmode button').forEach(b => b.onclick = () => { pmode = b.dataset.pm; localStorage.setItem('mt2-pmode', pmode); render(); });
+
 function render() {
   const dates = rangeDates();
   document.querySelectorAll('#ranges button').forEach(b => b.classList.toggle('on', +b.dataset.r === rangeDays));
-  renderCards(dates); renderCharts(dates); renderHistory(); hero(); renderStatus();
+  document.querySelectorAll('#pmode button').forEach(b => b.classList.toggle('on', b.dataset.pm === pmode));
+  renderCards(dates); renderCharts(dates); renderProgress(); renderHistory(); hero(); renderStatus();
 }
 
 // ---------- form ----------
