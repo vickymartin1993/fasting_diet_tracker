@@ -132,7 +132,7 @@ async function doSync() {
 function renderStatus() {
   $('status').textContent = syncState.msg;
   const b = $('banner');
-  if (!token()) { b.className = ''; b.style.display = 'block'; b.textContent = '⚠️ Backup is OFF. Add a GitHub token in "Backup & sync" so your data survives a phone reset or cleared browser.'; }
+  if (!token()) { b.className = ''; b.style.display = 'block'; b.textContent = '⚠️ Backup is OFF. Add a GitHub token in Settings → Backup & sync (see Guide) so your data survives a phone reset or cleared browser.'; }
   else if (syncState.ok === false) { b.className = 'err'; b.style.display = 'block'; b.textContent = '⚠️ ' + syncState.msg; }
   else if (isDirty()) { b.className = ''; b.style.display = 'block'; b.textContent = 'Changes not yet backed up – syncing…'; }
   else b.style.display = 'none';
@@ -258,7 +258,7 @@ function renderHistory() {
     live().reverse().map(d => { const e = data.days[d], h = fastingHours(d);
       return `<tr class="clk" data-d="${d}"><td>${d}</td><td>${e.breakfast || ''}</td><td>${e.acv ? '✅' : ''}</td><td>${e.lunch || ''}</td><td>${e.dinner || ''}</td><td>${e.extra || ''}</td><td>${e.weight ?? ''}</td>
       <td style="color:${h === null ? 'inherit' : zone(h).c};font-weight:600">${h === null ? '' : h.toFixed(1)}</td><td title="${esc(e.notes || '')}">${e.energy || '·'}/${e.hunger || '·'}${e.notes ? ' 📝' : ''}</td></tr>`; }).join('');
-  document.querySelectorAll('#hist tr.clk').forEach(tr => tr.onclick = () => { $('date').value = tr.dataset.d; fillForm(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  document.querySelectorAll('#hist tr.clk').forEach(tr => tr.onclick = () => { $('date').value = tr.dataset.d; fillForm(); showTab('home'); });
 }
 
 function render() {
@@ -350,6 +350,31 @@ $('imp').onchange = async ev => {
   } catch (e) { alert('Invalid backup file.'); }
   ev.target.value = '';
 };
+
+// ---------- tabs / install ----------
+function showTab(t) {
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('on', p.id === 'p-' + t));
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  localStorage.setItem('mt2-tab', t);
+  window.scrollTo(0, 0);
+  if (t === 'charts') render(); // canvases need a visible size
+}
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+let deferredPrompt = null;
+const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+function showInstall() {
+  if (standalone) return;
+  $('installBox').style.display = 'block';
+  if (isIOS && !deferredPrompt) { $('installBtn').style.display = 'none'; $('installBox').querySelector('p').textContent = 'On iPhone: tap the Share button in Safari, then "Add to Home Screen".'; }
+}
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; showInstall(); });
+addEventListener('appinstalled', () => { $('installBox').style.display = 'none'; deferredPrompt = null; });
+$('installBtn').onclick = async () => {
+  if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; }
+  else alert('Open the Chrome menu (⋮) and choose "Install app" or "Add to Home screen".');
+};
+showInstall();
 
 // ---------- theme / pwa / boot ----------
 function setTheme(t) { document.documentElement.dataset.theme = t; localStorage.setItem('mt2-theme', t); }
