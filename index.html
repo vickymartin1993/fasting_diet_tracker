@@ -79,6 +79,9 @@
   .insight{font-size:.88rem;line-height:1.6;margin-bottom:12px}
   .note{font-size:.75rem;color:var(--muted);margin-top:6px}
   #hero .quote{margin:12px auto 0;max-width:440px;font-size:1.02rem;font-weight:600;font-style:italic;background:#ffffff26;border-radius:16px;padding:10px 14px}
+  .moods{display:flex;flex-wrap:wrap;gap:8px}
+  .moods button{margin:0;background:var(--soft);color:var(--fg);box-shadow:none;border:2px solid transparent;padding:10px 12px;font-weight:600;font-size:.85rem}
+  .moods button.on{border-color:var(--accent);background:var(--card);box-shadow:0 3px 10px #6366f133}
 </style>
 </head>
 <body>
@@ -107,11 +110,17 @@
       <div><label>Late snack (optional)<button class="nowb" data-now="extra">now</button></label><input type="time" id="extra"></div>
       <div class="full"><label>Weight (kg)</label><input type="number" id="weight" step="0.1" min="0" inputmode="decimal"></div>
     </div>
-    <details><summary>Energy, hunger, sleep, notes</summary>
+    <h3 style="margin-top:18px">😴 Last night's sleep</h3>
+    <div class="grid">
+      <div><label>Went to bed</label><input type="time" id="bed"></div>
+      <div><label>Woke up</label><input type="time" id="wake"></div>
+    </div>
+    <div id="sleepMsg" class="note" style="margin:6px 0 0"></div>
+    <h3>How did you feel today?</h3>
+    <div id="moods" class="moods"></div>
+    <details><summary>Hunger, notes</summary>
       <div class="grid">
-        <div><label>Energy (1–5)</label><select id="energy"><option value=""></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
         <div><label>Hunger (1–5)</label><select id="hunger"><option value=""></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
-        <div class="full"><label>Sleep (hours)</label><input type="number" id="sleep" step="0.5" min="0" max="24" inputmode="decimal"></div>
         <div class="full"><label>Notes</label><textarea id="notes" rows="2"></textarea></div>
       </div>
     </details>
@@ -155,6 +164,7 @@
     <div class="chartbox"><canvas id="fastChart"></canvas></div>
   </section>
   <section><h2>⚖️ Weight (kg)</h2><div class="chartbox"><canvas id="weightChart"></canvas></div></section>
+  <section><h2>😴 Sleep</h2><div class="chartbox"><canvas id="sleepChart"></canvas></div></section>
   <section><h2>🌇 Dinner time</h2><div class="chartbox"><canvas id="dinnerChart"></canvas></div></section>
   <section>
     <div class="inl" style="justify-content:space-between;flex-wrap:wrap">
@@ -198,6 +208,8 @@
       <div><label>Good until (h)</label><input type="number" id="s_goodMax" step="0.5" inputmode="decimal"></div>
       <div><label>Dinner goal (24h clock)</label><input type="number" id="s_dinnerGoal" step="0.25" inputmode="decimal"></div>
       <div><label>Dinner limit (24h clock)</label><input type="number" id="s_dinnerMax" step="0.25" inputmode="decimal"></div>
+      <div><label>Goal bedtime</label><input type="time" id="s_sleepBed"></div>
+      <div><label>Goal wake-up</label><input type="time" id="s_sleepWake"></div>
     </div>
     <button id="saveTargets">Save targets</button>
   </section>
@@ -218,7 +230,8 @@
     <ul>
       <li><b>Home:</b> shows your live fasting timer, or last night's fast and your best. Log meals below it.</li>
       <li><b>Stats:</b> journey so far, summary cards, and week-by-week / month-by-month progress.</li>
-      <li><b>Charts:</b> fasting hours, weight vs target, dinner times and progress bars.</li>
+      <li><b>Charts:</b> fasting hours, weight vs target, sleep, dinner times and progress bars.</li>
+      <li><b>Sleep &amp; mood:</b> on Home enter last night's bed and wake time (a bedtime after midnight, like 12:30 am, is handled) and tap how you felt today. Weekly/monthly stats show average sleep and mood counts.</li>
       <li><b>History:</b> all days; tap one to edit.</li>
       <li>Water, black coffee, green tea and ACV never break the fast.</li>
       <li>Fast colours: red &lt; 12h, amber 12–14h, green 14–16h (sweet spot), purple &gt; 16h.</li>
@@ -283,7 +296,7 @@ function showTab(t) {
 document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.goto)));
 </script>
-<script src="chart.umd.js?v=6"></script>
-<script src="app.js?v=6"></script>
+<script src="chart.umd.js?v=7"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

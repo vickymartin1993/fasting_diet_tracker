@@ -2,7 +2,7 @@
 const FILE = 'meal-data.json';
 const KEY = 'mt2-data', DIRTY = 'mt2-dirty';
 const $ = id => document.getElementById(id);
-const DEFAULTS = { target: 80, base: 12, goodMin: 14, goodMax: 16, dinnerGoal: 18, dinnerMax: 19 };
+const DEFAULTS = { target: 80, base: 12, goodMin: 14, goodMax: 16, dinnerGoal: 18, dinnerMax: 19, sleepBed: '23:00', sleepWake: '06:30' };
 
 // ---------- model ----------
 // data = { version:2, settings:{...,updated}, days:{ 'YYYY-MM-DD': {breakfast,lunch,dinner,extra,acv,weight,energy,hunger,sleep,notes,updated,deleted?} } }
@@ -65,6 +65,33 @@ function zone(h) {
   return { c: '#7c3aed', t: 'Riskier', msg: 'Above the recommended range – consider breaking your fast.' };
 }
 const allFasts = () => live().map(d => ({ d, h: fastingHours(d) })).filter(x => x.h !== null);
+
+
+// ---------- sleep & mood ----------
+const MOODS = [['energetic', '⚡', 'Energetic'], ['good', '🙂', 'Okay'], ['tired', '😴', 'Tired'], ['exhausted', '😫', 'Exhausted'], ['quit', '🏳️', 'Wanted to quit']];
+const tmin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+// Entry date = the morning you woke up. Bed clock-time later than wake clock-time means you went to bed the evening before;
+// otherwise (e.g. 00:30 -> 07:00) you went to bed after midnight on the same day.
+function sleepSpan(bed, wake) {
+  const mins = (tmin(wake) - tmin(bed) + 1440) % 1440;
+  return mins === 0 ? null : { h: mins / 60, prevDay: tmin(bed) > tmin(wake) };
+}
+function sleepInfo(e) {
+  if (!e) return null;
+  if (e.bed && e.wake) return sleepSpan(e.bed, e.wake);
+  return e.sleep ? { h: e.sleep, prevDay: null } : null;
+}
+const sleepGoalH = () => (sleepSpan(S().sleepBed, S().sleepWake) || { h: 7.5 }).h;
+const to12 = t => { const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}:${pad(m)} ${h >= 12 ? 'PM' : 'AM'}`; };
+// average clock time, with bedtimes after midnight (before noon) counted as "late" so 23:30 and 00:30 average to 00:00
+function avgBed(list) {
+  if (!list.length) return null;
+  const m = list.map(t => { const x = tmin(t); return x < 720 ? x + 1440 : x; });
+  const avg = Math.round(m.reduce((a, b) => a + b, 0) / m.length) % 1440;
+  return `${pad(Math.floor(avg / 60))}:${pad(avg % 60)}`;
+}
+const moodCounts = list => { const c = {}; MOODS.forEach(m => c[m[0]] = 0); list.forEach(e => { if (e && c[e.mood] !== undefined) c[e.mood]++; }); return c; };
+const moodEmoji = k => (MOODS.find(m => m[0] === k) || [])[1] || '';
 
 // ---------- sync (gist) ----------
 const token = () => localStorage.getItem('mt-token');
@@ -247,6 +274,11 @@ function renderCharts(dates) {
 
   const dn = dates.map(d => { const e = entry(d); return e && e.dinner ? hm(e.dinner) : null; });
   const fmtH = v => `${Math.floor(v)}:${pad(Math.round((v % 1) * 60))}`;
+  const sh = dates.map(d => { const i = sleepInfo(entry(d)); return i ? +i.h.toFixed(2) : null; }), gh = sleepGoalH();
+  draw('sleepChart', { type: 'bar', data: { labels: dates, datasets: [
+    { label: 'Sleep (h)', data: sh, backgroundColor: sh.map(v => v === null ? '#0000' : v >= gh - 0.25 ? '#6366f1' : '#f59e0b') },
+    line('Goal ' + fmtHM(gh), fill(gh), '#22c55e', [6, 4])] },
+    options: { scales: { y: { beginAtZero: true, suggestedMax: 10 } }, plugins: { legend: { display: false } } } });
   draw('dinnerChart', { type: 'line', data: { labels: dates, datasets: [
     { label: 'Dinner', data: dn, borderColor: '#64748b', showLine: false, pointRadius: 5, pointBackgroundColor: dn.map(v => v === null ? '#0000' : v > s.dinnerMax ? '#ef4444' : v > s.dinnerGoal ? '#f59e0b' : '#22c55e') },
     line('Goal', fill(s.dinnerGoal), '#22c55e', [5, 4]), line('Limit', fill(s.dinnerMax), '#ef4444', [5, 4])] },
@@ -269,11 +301,15 @@ function renderCards(dates) {
   const acv = inR.length ? Math.round(100 * inR.filter(e => e.acv).length / inR.length) : null;
   const w = all.filter(d => data.days[d].weight);
   const cur = w.length ? data.days[w[w.length - 1]].weight : null, first = w.length ? data.days[w[0]].weight : null;
+  const sl = dates.map(d => sleepInfo(entry(d))).filter(Boolean), slAvg = sl.length ? sl.reduce((x, y) => x + y.h, 0) / sl.length : null;
+  const moods = moodCounts(dates.map(entry));
   const c = [
     ['Avg fast', avg === null ? '–' : fmtHM(avg), `${rangeDays ? rangeDays + 'd' : 'all'}`],
     ['In ' + s.goodMin + '–' + s.goodMax + 'h zone', good === null ? '–' : good + '%', 'of fasts'],
     ['Best fast', best === null ? '–' : fmtHM(best), 'all time'],
     ['Dinner ≤ ' + fmtClockH(s.dinnerGoal) + ' streak', streak + ' d', 'in a row'],
+    ['Avg sleep', slAvg === null ? '–' : fmtHM(slAvg), `goal ${fmtHM(sleepGoalH())}`],
+    ['Energetic days', moods.energetic, `of ${dates.map(entry).filter(e => e && e.mood).length} with mood`],
     ['ACV taken', acv === null ? '–' : acv + '%', 'of breakfasts'],
     ['Weight', cur === null ? '–' : cur + ' kg', cur === null ? '' : (cur - first >= 0 ? '+' : '') + (cur - first).toFixed(1) + ' since start'],
     ['To target', cur === null ? '–' : (cur - s.target).toFixed(1) + ' kg', 'target ' + s.target]
@@ -286,10 +322,10 @@ const fmtClockH = v => `${Math.floor(v) % 12 || 12}${v % 1 ? ':' + pad(Math.roun
 
 function renderHistory() {
   const esc = t => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-  $('hist').innerHTML = '<tr><th>Date</th><th>Bkfst</th><th>ACV</th><th>Lunch</th><th>Dinner</th><th>Snack</th><th>Kg</th><th>Fast</th><th>E/H</th></tr>' +
+  $('hist').innerHTML = '<tr><th>Date</th><th>Bkfst</th><th>ACV</th><th>Lunch</th><th>Dinner</th><th>Snack</th><th>Kg</th><th>Fast</th><th>Sleep</th><th>Mood</th></tr>' +
     live().reverse().map(d => { const e = data.days[d], h = fastingHours(d);
       return `<tr class="clk" data-d="${d}"><td>${d}</td><td>${e.breakfast || ''}</td><td>${e.acv ? '✅' : ''}</td><td>${e.lunch || ''}</td><td>${e.dinner || ''}</td><td>${e.extra || ''}</td><td>${e.weight ?? ''}</td>
-      <td style="color:${h === null ? 'inherit' : zone(h).c};font-weight:600">${h === null ? '' : h.toFixed(1)}</td><td title="${esc(e.notes || '')}">${e.energy || '·'}/${e.hunger || '·'}${e.notes ? ' 📝' : ''}</td></tr>`; }).join('');
+      <td style="color:${h === null ? 'inherit' : zone(h).c};font-weight:600">${h === null ? '' : h.toFixed(1)}</td><td>${(() => { const i = sleepInfo(e); return i ? fmtHM(i.h) : ''; })()}</td><td title="${esc(e.notes || '')}">${moodEmoji(e.mood)}${e.notes ? ' 📝' : ''}</td></tr>`; }).join('');
   document.querySelectorAll('#hist tr.clk').forEach(tr => tr.onclick = () => { $('date').value = tr.dataset.d; fillForm(); showTab('home'); });
 }
 
@@ -312,15 +348,17 @@ function renderProgress() {
   const span = Math.floor((new Date(ymd(new Date()) + 'T12:00:00') - new Date(start + 'T12:00:00')) / 864e5) + 1;
   const b = buckets();
   const pc = n => fasts.length ? Math.round(100 * n / fasts.length) + '%' : '';
+  const jSl = days.map(d => sleepInfo(data.days[d])).filter(Boolean);
   const J = [['Started', new Date(start + 'T12:00:00').toLocaleDateString([], { day: 'numeric', month: 'short', year: '2-digit' }), `day ${span}`], ['Days logged', days.length, `${fasts.length} fasts measured`],
     ['Fasts ' + b[0], cnt[0], pc(cnt[0])], ['Fasts ' + b[1], cnt[1], pc(cnt[1])], ['Fasts ' + b[2], cnt[2], pc(cnt[2])],
+    ['Avg sleep', jSl.length ? fmtHM(jSl.reduce((x, y) => x + y.h, 0) / jSl.length) : '–', `${jSl.length} nights logged`],
     ['Total change', w0 === null ? '–' : (w1 - w0 > 0 ? '+' : '') + (w1 - w0).toFixed(1) + ' kg', w0 === null ? '' : `${w0} → ${w1} kg`]];
   $('journey').innerHTML = J.map(x => `<div class="card"><small>${x[0]}</small><b>${x[1]}</b><small>${x[2]}</small></div>`).join('');
 
   const P = {}, order = [];
-  days.forEach(d => { const k = periodKey(d, start); if (!P[k]) { P[k] = { k, days: [], fasts: [], c: [0, 0, 0], dinners: [], wLast: null, first: d }; order.push(k); } P[k].days.push(d); });
+  days.forEach(d => { const k = periodKey(d, start); if (!P[k]) { P[k] = { k, days: [], fasts: [], c: [0, 0, 0], dinners: [], sleeps: [], beds: [], es: [], wLast: null, first: d }; order.push(k); } P[k].days.push(d); });
   fasts.forEach(f => { const p = P[periodKey(f.d, start)]; if (p) { p.fasts.push(f.h); p.c[bucketOf(f.h)]++; } });
-  order.forEach(k => { const p = P[k]; p.days.forEach(d => { const e = data.days[d]; if (e.weight) p.wLast = e.weight; if (e.dinner) p.dinners.push(hm(e.dinner)); }); });
+  order.forEach(k => { const p = P[k]; p.days.forEach(d => { const e = data.days[d]; if (e.weight) p.wLast = e.weight; if (e.dinner) p.dinners.push(hm(e.dinner)); const si = sleepInfo(e); if (si) { p.sleeps.push(si.h); if (e.bed && e.wake) p.beds.push(e.bed); } p.es.push(e); }); });
   let prev = w0, cum = null;
   const rows = order.map(k => {
     const p = P[k];
@@ -338,9 +376,16 @@ function renderProgress() {
     const txt = v => v === null ? '–' : `${v > 0 ? '+' : ''}${v.toFixed(1)} kg`;
     return `<div class="pcard"><div class="top"><div><b>${label(p)}</b> <small>from ${p.first.slice(5)}</small></div><span class="chg" style="color:${col(p.change)}">${txt(p.change)}</span></div>
       <div class="meta">Total so far ${txt(p.cum)} · Avg fast ${p.avg === null ? '–' : fmtHM(p.avg)} · ${p.days.length} days logged</div>
+      ${sleepLine(p)}
       <div class="pl"><span>🔴 ${b[0]}: ${p.c[0]}</span><span>🟢 ${b[1]}: ${p.c[1]}</span><span>🟣 ${b[2]}: ${p.c[2]}</span></div></div>`;
   }).join('');
 
+  function sleepLine(p) {
+    const mc = moodCounts(p.es), moodTxt = MOODS.filter(m => mc[m[0]]).map(m => `<span>${m[1]} ${mc[m[0]]}</span>`).join('');
+    const goal = sleepGoalH(), met = p.sleeps.filter(x => x >= goal - 0.25).length;
+    const sl = p.sleeps.length ? `<div class="meta" style="margin:6px 0">😴 Avg sleep ${fmtHM(p.sleeps.reduce((x, y) => x + y, 0) / p.sleeps.length)}${p.beds.length ? ' · avg bedtime ' + to12(avgBed(p.beds)) : ''} · goal met ${met}/${p.sleeps.length} nights</div>` : '<div class="meta" style="margin:6px 0">😴 No sleep logged</div>';
+    return sl + `<div class="pl" style="margin-bottom:6px">${moodTxt || '<span>No mood logged</span>'}</div>`;
+  }
   const withChange = rows.filter(p => p.change !== null);
   let msg = '';
   if (withChange.length) {
@@ -366,11 +411,26 @@ function render() {
 
 // ---------- form ----------
 const TIMES = ['breakfast', 'lunch', 'dinner', 'extra'];
+let curMood = '';
+function setMood(m) { curMood = m; document.querySelectorAll('#moods button').forEach(b => b.classList.toggle('on', b.dataset.m === m)); }
+$('moods').innerHTML = MOODS.map(m => `<button type="button" data-m="${m[0]}">${m[1]} ${m[2]}</button>`).join('');
+document.querySelectorAll('#moods button').forEach(b => b.onclick = () => setMood(curMood === b.dataset.m ? '' : b.dataset.m));
+function checkSleep() {
+  const b = $('bed').value, w = $('wake').value, m = $('sleepMsg');
+  m.className = 'note'; m.style.margin = '6px 0 0';
+  if (!b || !w) { m.textContent = `Goal: ${to12(S().sleepBed)} → ${to12(S().sleepWake)} (${fmtHM(sleepGoalH())}).`; return; }
+  const sp = sleepSpan(b, w);
+  if (!sp) { m.textContent = 'Bed and wake times are the same – please check.'; return; }
+  const when = sp.prevDay ? 'the night before' : 'after midnight, same day';
+  m.textContent = `Slept ${fmtHM(sp.h)} (bed ${when}).` + (sp.h > 13 ? ' ⚠️ That is long – check AM/PM.' : sp.h < 4 ? ' ⚠️ Very short – check AM/PM.' : sp.h >= sleepGoalH() - 0.25 ? ' ✅ Goal met!' : ` Goal is ${fmtHM(sleepGoalH())}.`);
+}
+$('bed').oninput = $('wake').oninput = checkSleep;
 function fillForm() {
   const e = entry($('date').value) || {};
   TIMES.forEach(k => $(k).value = e[k] || '');
   $('acv').checked = !!e.acv; $('weight').value = e.weight ?? '';
-  $('energy').value = e.energy ?? ''; $('hunger').value = e.hunger ?? ''; $('sleep').value = e.sleep ?? ''; $('notes').value = e.notes || '';
+  $('hunger').value = e.hunger ?? ''; $('notes').value = e.notes || '';
+  $('bed').value = e.bed || ''; $('wake').value = e.wake || ''; setMood(e.mood || ''); checkSleep();
   checkDinner(); $('saveMsg').textContent = '';
 }
 function checkDinner() {
@@ -388,9 +448,10 @@ $('save').onclick = () => {
   TIMES.forEach(k => { if ($(k).value) e[k] = $(k).value; });
   if ($('acv').checked) e.acv = true;
   if ($('weight').value) e.weight = parseFloat($('weight').value);
-  if ($('energy').value) e.energy = +$('energy').value;
   if ($('hunger').value) e.hunger = +$('hunger').value;
-  if ($('sleep').value) e.sleep = parseFloat($('sleep').value);
+  if ($('bed').value && $('wake').value) { e.bed = $('bed').value; e.wake = $('wake').value; }
+  else { const old = entry(d); if (old && old.sleep) e.sleep = old.sleep; }
+  if (curMood) e.mood = curMood;
   if ($('notes').value.trim()) e.notes = $('notes').value.trim();
   if (!Object.keys(e).length) { $('saveMsg').textContent = 'Nothing to save.'; return; }
   e.updated = Date.now();
@@ -413,13 +474,14 @@ document.querySelectorAll('.ranges button').forEach(b => b.onclick = () => { ran
 function fillSettings() {
   const s = S();
   $('s_target').value = s.target; $('s_base').value = s.base; $('s_goodMin').value = s.goodMin; $('s_goodMax').value = s.goodMax;
-  $('s_dinnerGoal').value = s.dinnerGoal; $('s_dinnerMax').value = s.dinnerMax;
+  $('s_dinnerGoal').value = s.dinnerGoal; $('s_dinnerMax').value = s.dinnerMax; $('s_sleepBed').value = s.sleepBed; $('s_sleepWake').value = s.sleepWake;
 }
 $('saveTargets').onclick = () => {
   const v = id => parseFloat($(id).value);
   const n = { target: v('s_target'), base: v('s_base'), goodMin: v('s_goodMin'), goodMax: v('s_goodMax'), dinnerGoal: v('s_dinnerGoal'), dinnerMax: v('s_dinnerMax') };
   if (Object.values(n).some(isNaN)) return alert('Fill all target fields.');
-  data.settings = { ...n, updated: Date.now() }; commit(); fillForm();
+  if (!$('s_sleepBed').value || !$('s_sleepWake').value || !sleepSpan($('s_sleepBed').value, $('s_sleepWake').value)) return alert('Set a valid goal bedtime and wake-up.');
+  data.settings = { ...n, sleepBed: $('s_sleepBed').value, sleepWake: $('s_sleepWake').value, updated: Date.now() }; commit(); fillForm();
 };
 $('saveSettings').onclick = () => {
   localStorage.setItem('mt-token', $('token').value.trim());
@@ -435,9 +497,9 @@ function download(name, text, type) {
 }
 $('expJson').onclick = () => download(`meal-tracker-${ymd(new Date())}.json`, JSON.stringify(data, null, 1), 'application/json');
 $('expCsv').onclick = () => {
-  const cols = ['date', 'breakfast', 'acv', 'lunch', 'dinner', 'extra', 'weight', 'fasting_hours', 'energy', 'hunger', 'sleep', 'notes'];
+  const cols = ['date', 'breakfast', 'acv', 'lunch', 'dinner', 'extra', 'weight', 'fasting_hours', 'bed', 'wake', 'sleep_hours', 'mood', 'hunger', 'notes'];
   const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const rows = live().map(d => { const e = data.days[d], h = fastingHours(d); return [d, e.breakfast, e.acv ? 1 : 0, e.lunch, e.dinner, e.extra, e.weight, h === null ? '' : h.toFixed(2), e.energy, e.hunger, e.sleep, e.notes].map(q).join(','); });
+  const rows = live().map(d => { const e = data.days[d], h = fastingHours(d); return [d, e.breakfast, e.acv ? 1 : 0, e.lunch, e.dinner, e.extra, e.weight, h === null ? '' : h.toFixed(2), e.bed, e.wake, (() => { const i = sleepInfo(e); return i ? i.h.toFixed(2) : ''; })(), e.mood, e.hunger, e.notes].map(q).join(','); });
   download(`meal-tracker-${ymd(new Date())}.csv`, [cols.join(','), ...rows].join('\n'), 'text/csv');
 };
 $('imp').onchange = async ev => {
