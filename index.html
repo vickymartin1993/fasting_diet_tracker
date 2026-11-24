@@ -56,6 +56,13 @@
   .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px}
   table{border-collapse:collapse;width:100%;font-size:.8rem}
   th{color:var(--muted);font-weight:700} td,th{border-bottom:1px solid var(--line);padding:10px 5px;text-align:left}
+  .daybadge{padding:6px 12px;border-radius:999px;font-weight:700;font-size:.9rem}
+  .daybadge.day-today{background:#16a34a;color:#fff}.daybadge.day-past{background:#e0e7ff;color:#3730a3}.daybadge.day-future{background:#fef3c7;color:#92400e}
+  #date.day-today{border:2px solid #16a34a;background:#dcfce7}#date.day-past{border:2px solid #818cf8;background:#eef2ff}#date.day-future{border:2px solid #f59e0b;background:#fffbeb}
+  tr.day-today td{background:#dcfce7;font-weight:700}tr.day-past td{background:transparent}tr.day-future td{background:#fffbeb}
+  :root[data-theme=dark] #date.day-today,:root[data-theme=dark] tr.day-today td{background:#14532d;color:#fff}
+  :root[data-theme=dark] #date.day-past{background:#1e1b4b;color:#fff}
+  :root[data-theme=dark] #date.day-future,:root[data-theme=dark] tr.day-future td{background:#451a03;color:#fff}
   tr.clk{cursor:pointer} tr.clk:active{background:var(--soft)}
   .chartbox{position:relative;height:280px}
   details summary{cursor:pointer;font-weight:700;padding:10px 0;color:var(--accent)}
@@ -101,7 +108,7 @@
       <input type="date" id="date">
       <button class="sec mini" id="next">▶</button>
     </div>
-    <button class="sec mini" id="todayBtn" style="margin-top:8px">Today</button>
+    <div class="inl" style="margin-top:8px"><button class="sec mini" id="todayBtn">Today</button><span id="dayBadge" class="daybadge"></span></div>
     <div class="grid">
       <div><label>Breakfast<button class="nowb" data-now="breakfast">now</button></label><input type="time" id="breakfast"></div>
       <div><label>Lunch (skip if none)<button class="nowb" data-now="lunch">now</button></label><input type="time" id="lunch"></div>
@@ -297,7 +304,7 @@ function showTab(t) {
 document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.goto)));
 </script>
-<script src="chart.umd.js?v=8"></script>
-<script src="app.js?v=8"></script>
+<script src="chart.umd.js?v=9"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>

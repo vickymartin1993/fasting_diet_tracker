@@ -324,7 +324,7 @@ function renderHistory() {
   const esc = t => String(t).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
   $('hist').innerHTML = '<tr><th>Date</th><th>Bkfst</th><th>ACV</th><th>Lunch</th><th>Dinner</th><th>Snack</th><th>Kg</th><th>Fast</th><th>Sleep</th><th>Mood</th></tr>' +
     live().reverse().map(d => { const e = data.days[d], h = fastingHours(d);
-      return `<tr class="clk" data-d="${d}"><td>${d}</td><td>${e.breakfast || ''}</td><td>${e.acv ? '✅' : ''}</td><td>${e.lunch || ''}</td><td>${e.dinner || ''}</td><td>${e.extra || ''}</td><td>${e.weight ?? ''}</td>
+      return `<tr class="clk ${dayKind(d)}" data-d="${d}"><td>${d}</td><td>${e.breakfast || ''}</td><td>${e.acv ? '✅' : ''}</td><td>${e.lunch || ''}</td><td>${e.dinner || ''}</td><td>${e.extra || ''}</td><td>${e.weight ?? ''}</td>
       <td style="color:${h === null ? 'inherit' : zone(h).c};font-weight:600">${h === null ? '' : h.toFixed(1)}</td><td>${(() => { const i = sleepInfo(e); return i ? fmtHM(i.h) : ''; })()}</td><td title="${esc(e.notes || '')}">${moodEmoji(e.mood)}${e.notes ? ' 📝' : ''}</td></tr>`; }).join('');
   document.querySelectorAll('#hist tr.clk').forEach(tr => tr.onclick = () => { $('date').value = tr.dataset.d; fillForm(); showTab('home'); });
 }
@@ -425,8 +425,13 @@ function checkSleep() {
   m.textContent = `Slept ${fmtHM(sp.h)} (bed ${when}).` + (sp.h > 13 ? ' ⚠️ That is long – check AM/PM.' : sp.h < 4 ? ' ⚠️ Very short – check AM/PM.' : sp.h >= sleepGoalH() - 0.25 ? ' ✅ Goal met!' : ` Goal is ${fmtHM(sleepGoalH())}.`);
 }
 $('bed').oninput = $('wake').oninput = checkSleep;
+const dayKind = d => { const t = ymd(new Date()); return d === t ? 'day-today' : d < t ? 'day-past' : 'day-future'; };
 function fillForm() {
   const e = entry($('date').value) || {};
+  const k = dayKind($('date').value), b = $('dayBadge');
+  b.className = 'daybadge ' + k;
+  b.textContent = k === 'day-today' ? '📍 Today' : k === 'day-past' ? '🕘 Past day – editing an earlier entry' : '🔮 Future day – not yet happened';
+  $('date').className = k;
   TIMES.forEach(k => $(k).value = e[k] || '');
   $('acv').checked = !!e.acv; $('weight').value = e.weight ?? '';
   $('hunger').value = e.hunger ?? ''; $('notes').value = e.notes || '';
