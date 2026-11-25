@@ -473,8 +473,18 @@ function checkDinner() {
 }
 function commit() { persist(); localStorage.setItem(DIRTY, '1'); render(); sync(); }
 
+const WIN = { breakfast: [4, 12, 'Breakfast', 'morning (4 am – 12 pm)'], lunch: [11, 17, 'Lunch', 'midday (11 am – 5 pm)'], dinner: [15, 24, 'Dinner', 'evening (3 pm – midnight)'], extra: [17, 24, 'Late snack', 'evening (5 pm – midnight)'] };
+const outOfWindow = (k, v) => { const w = WIN[k]; return v && (hm(v) < w[0] || hm(v) >= w[1]) ? `${w[2]} should be in the ${w[3]}. You entered ${to12(v)}.` : ''; };
+function validateDay() {
+  const errs = [];
+  TIMES.forEach(k => { const m = outOfWindow(k, $(k).value); if (m) errs.push(m); });
+  const seq = ['breakfast', 'lunch', 'dinner'].filter(k => $(k).value);
+  for (let i = 1; i < seq.length; i++) if (hm($(seq[i]).value) <= hm($(seq[i - 1]).value)) errs.push(`${WIN[seq[i]][2]} must be after ${WIN[seq[i - 1]][2].toLowerCase()}.`);
+  return errs;
+}
 $('save').onclick = () => {
   const d = $('date').value; if (!d) return;
+  const errs = validateDay(); if (errs.length) { $('saveMsg').textContent = '⚠️ ' + errs[0]; alert(errs.join('\n')); return; }
   const e = {};
   TIMES.forEach(k => { if ($(k).value) e[k] = $(k).value; });
   if ($('acv').checked) e.acv = true;
@@ -498,7 +508,7 @@ $('dinner').oninput = checkDinner;
 $('prev').onclick = () => { $('date').value = addDays($('date').value, -1); fillForm(); };
 $('next').onclick = () => { $('date').value = addDays($('date').value, 1); fillForm(); };
 $('todayBtn').onclick = () => { $('date').value = ymd(new Date()); fillForm(); };
-document.querySelectorAll('[data-now]').forEach(b => b.onclick = () => { const n = new Date(); $(b.dataset.now).value = `${pad(n.getHours())}:${pad(n.getMinutes())}`; checkDinner(); });
+document.querySelectorAll('[data-now]').forEach(b => b.onclick = () => { const n = new Date(); const t = `${pad(n.getHours())}:${pad(n.getMinutes())}`, m = outOfWindow(b.dataset.now, t); if (m) { alert(m); return; } $(b.dataset.now).value = `${pad(n.getHours())}:${pad(n.getMinutes())}`; checkDinner(); });
 document.querySelectorAll('.ranges button').forEach(b => b.onclick = () => { rangeDays = +b.dataset.r; localStorage.setItem('mt2-range', rangeDays); render(); });
 
 // ---------- settings / backup ----------
