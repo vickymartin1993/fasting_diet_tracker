@@ -209,7 +209,8 @@ function hero() {
     if (t <= now) { last = t; break; }
   }
   const dinnerDone = te && te.dinner && at(today, te.dinner) <= now;
-  const fasting = last && ((!(te && te.breakfast) && now.getHours() < 12) || dinnerDone);
+  const ateToday = te && [te.breakfast, te.lunch, te.dinner, te.extra].some(t => t && at(today, t) <= now);
+  const fasting = last && (!ateToday || dinnerDone);
   const fasts = allFasts();
   const best = fasts.reduce((m, x) => (!m || x.h > m.h ? x : m), null);
   const pills = [];
