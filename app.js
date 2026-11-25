@@ -346,22 +346,14 @@ function renderForecast() {
     if (r === null) return `<div class="fcrow"><b>${label}</b><span>Not enough data yet</span></div>`;
     if (remain <= 0) return '';
     if (r <= 0.001) return `<div class="fcrow"><b>${label}</b><span>${r.toFixed(2)} kg/week – not losing yet</span></div>`;
-    const wk = remain / r;
-    return `<div class="fcrow"><b>${label}</b><span>${r.toFixed(2)} kg/week · ${(r * WPM).toFixed(2)} kg/month<br>≈ <b>${wk.toFixed(1)} weeks</b> = <b>${(wk / WPM).toFixed(1)} months</b> → <b>${fmtD(last.t + wk * 7 * 864e5)}</b></span></div>`;
+    const wk = remain / r, tot = Math.round(wk * 7), end = new Date(Date.now() + tot * 864e5);
+    const mo = Math.floor(tot / 30.44), dd = Math.round(tot - mo * 30.44);
+    return `<div class="fcrow"><b>${label}</b><span>Losing ${r.toFixed(2)} kg/week (${(r * WPM).toFixed(2)} kg/month)<br>${remain.toFixed(1)} kg ÷ ${r.toFixed(2)} = <b>${wk.toFixed(1)} weeks</b> (${tot} days) ≈ <b>${mo} months ${dd} days</b><br>🎯 Expected date: <b>${fmtD(end.getTime())}</b></span></div>`;
   };
-  let need = '';
-  if (s.targetDate && remain > 0) {
-    const wk = (new Date(s.targetDate + 'T12:00:00').getTime() - Date.now()) / 864e5 / 7;
-    if (wk > 0) {
-      const nr = remain / wk, cur = recent ?? overall;
-      const gap = cur === null ? '' : cur >= nr ? ' ✅ You are on track.' : ` ⚠️ Current pace is ${cur.toFixed(2)} – you need ${(nr - Math.max(cur, 0)).toFixed(2)} kg/week more.`;
-      need = `<div class="fcrow need"><b>To finish by ${fmtD(new Date(s.targetDate + 'T12:00:00').getTime())}</b><span>${wk.toFixed(1)} weeks (${(wk / WPM).toFixed(1)} months) left → lose <b>${nr.toFixed(2)} kg/week</b> · ${(nr * WPM).toFixed(2)} kg/month.${gap}</span></div>`;
-    } else need = '<div class="fcrow need"><b>Target date has passed</b><span>Set a new date in Settings → Targets.</span></div>';
-  }
   const head = remain <= 0 ? `<p class="note">🎉 Target reached! ${last.w} kg is at or below ${s.target} kg.</p>`
     : `<div class="cards"><div class="card"><small>Now</small><b>${last.w} kg</b><small>${fmtD(last.t)}</small></div><div class="card"><small>To lose</small><b>${remain.toFixed(1)} kg</b><small>target ${s.target} kg</small></div><div class="card"><small>Done so far</small><b>${pct.toFixed(0)}%</b><small>${(first.w - last.w).toFixed(1)} kg lost</small></div></div><div class="bar"><i style="width:${pct}%"></i></div>`;
-  el.innerHTML = head + row('Current pace (last 14 days)', recent) + row('Overall pace (since start)', overall) + need +
-    '<p class="note">Weeks and months are the same forecast – months = weeks ÷ 4.35. It updates as your weight changes.</p>';
+  el.innerHTML = head + row('Based on current pace (last 14 days)', recent) + row('Based on overall pace (since start)', overall) +
+    '<p class="note">Counted from today at your logged pace. Updates automatically as you log weight.</p>';
 }
 
 // ---------- journey & weekly/monthly progress ----------
@@ -513,14 +505,14 @@ document.querySelectorAll('.ranges button').forEach(b => b.onclick = () => { ran
 function fillSettings() {
   const s = S();
   $('s_target').value = s.target; $('s_base').value = s.base; $('s_goodMin').value = s.goodMin; $('s_goodMax').value = s.goodMax;
-  $('s_dinnerGoal').value = s.dinnerGoal; $('s_dinnerMax').value = s.dinnerMax; $('s_targetDate').value = s.targetDate || ''; $('s_sleepBed').value = s.sleepBed; $('s_sleepWake').value = s.sleepWake;
+  $('s_dinnerGoal').value = s.dinnerGoal; $('s_dinnerMax').value = s.dinnerMax; $('s_sleepBed').value = s.sleepBed; $('s_sleepWake').value = s.sleepWake;
 }
 $('saveTargets').onclick = () => {
   const v = id => parseFloat($(id).value);
   const n = { target: v('s_target'), base: v('s_base'), goodMin: v('s_goodMin'), goodMax: v('s_goodMax'), dinnerGoal: v('s_dinnerGoal'), dinnerMax: v('s_dinnerMax') };
   if (Object.values(n).some(isNaN)) return alert('Fill all target fields.');
   if (!$('s_sleepBed').value || !$('s_sleepWake').value || !sleepSpan($('s_sleepBed').value, $('s_sleepWake').value)) return alert('Set a valid goal bedtime and wake-up.');
-  data.settings = { ...n, targetDate: $('s_targetDate').value || '', sleepBed: $('s_sleepBed').value, sleepWake: $('s_sleepWake').value, updated: Date.now() }; commit(); fillForm();
+  data.settings = { ...n, sleepBed: $('s_sleepBed').value, sleepWake: $('s_sleepWake').value, updated: Date.now() }; commit(); fillForm();
 };
 $('saveSettings').onclick = () => {
   localStorage.setItem('mt-token', $('token').value.trim());

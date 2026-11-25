@@ -217,7 +217,6 @@
     <h2>🎯 Targets</h2>
     <div class="grid">
       <div><label>Target weight (kg)</label><input type="number" id="s_target" step="0.1" inputmode="decimal"></div>
-      <div><label>Target date (optional)</label><input type="date" id="s_targetDate"></div>
       <div><label>Baseline fast (h)</label><input type="number" id="s_base" step="0.5" inputmode="decimal"></div>
       <div><label>Good from (h)</label><input type="number" id="s_goodMin" step="0.5" inputmode="decimal"></div>
       <div><label>Good until (h)</label><input type="number" id="s_goodMax" step="0.5" inputmode="decimal"></div>
@@ -312,7 +311,7 @@ function showTab(t) {
 document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.goto)));
 </script>
-<script src="chart.umd.js?v=14"></script>
-<script src="app.js?v=14"></script>
+<script src="chart.umd.js?v=15"></script>
+<script src="app.js?v=15"></script>
 </body>
 </html>
