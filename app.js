@@ -330,6 +330,40 @@ function renderHistory() {
 }
 
 
+// ---------- goal forecast ----------
+const WPM = 52 / 12;
+function renderForecast() {
+  const el = $('forecast'), s = S();
+  const pts = live().filter(d => data.days[d].weight).map(d => ({ d, t: new Date(d + 'T12:00:00').getTime(), w: +data.days[d].weight }));
+  if (pts.length < 2) { el.innerHTML = '<p class="note">Log your weight on at least two different days to see your forecast.</p>'; return; }
+  const first = pts[0], last = pts[pts.length - 1], remain = last.w - s.target;
+  const rate = arr => { if (arr.length < 2) return null; const a = arr[0], b = arr[arr.length - 1], days = (b.t - a.t) / 864e5; return days >= 3 ? (a.w - b.w) / days * 7 : null; };
+  const recent = rate(pts.filter(p => p.t >= last.t - 14 * 864e5));
+  const overall = rate(pts);
+  const pct = Math.max(0, Math.min(100, first.w === s.target ? 100 : 100 * (first.w - last.w) / (first.w - s.target)));
+  const fmtD = t => new Date(t).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
+  const row = (label, r) => {
+    if (r === null) return `<div class="fcrow"><b>${label}</b><span>Not enough data yet</span></div>`;
+    if (remain <= 0) return '';
+    if (r <= 0.001) return `<div class="fcrow"><b>${label}</b><span>${r.toFixed(2)} kg/week – not losing yet</span></div>`;
+    const wk = remain / r;
+    return `<div class="fcrow"><b>${label}</b><span>${r.toFixed(2)} kg/week · ${(r * WPM).toFixed(2)} kg/month<br>≈ <b>${wk.toFixed(1)} weeks</b> = <b>${(wk / WPM).toFixed(1)} months</b> → <b>${fmtD(last.t + wk * 7 * 864e5)}</b></span></div>`;
+  };
+  let need = '';
+  if (s.targetDate && remain > 0) {
+    const wk = (new Date(s.targetDate + 'T12:00:00').getTime() - Date.now()) / 864e5 / 7;
+    if (wk > 0) {
+      const nr = remain / wk, cur = recent ?? overall;
+      const gap = cur === null ? '' : cur >= nr ? ' ✅ You are on track.' : ` ⚠️ Current pace is ${cur.toFixed(2)} – you need ${(nr - Math.max(cur, 0)).toFixed(2)} kg/week more.`;
+      need = `<div class="fcrow need"><b>To finish by ${fmtD(new Date(s.targetDate + 'T12:00:00').getTime())}</b><span>${wk.toFixed(1)} weeks (${(wk / WPM).toFixed(1)} months) left → lose <b>${nr.toFixed(2)} kg/week</b> · ${(nr * WPM).toFixed(2)} kg/month.${gap}</span></div>`;
+    } else need = '<div class="fcrow need"><b>Target date has passed</b><span>Set a new date in Settings → Targets.</span></div>';
+  }
+  const head = remain <= 0 ? `<p class="note">🎉 Target reached! ${last.w} kg is at or below ${s.target} kg.</p>`
+    : `<div class="cards"><div class="card"><small>Now</small><b>${last.w} kg</b><small>${fmtD(last.t)}</small></div><div class="card"><small>To lose</small><b>${remain.toFixed(1)} kg</b><small>target ${s.target} kg</small></div><div class="card"><small>Done so far</small><b>${pct.toFixed(0)}%</b><small>${(first.w - last.w).toFixed(1)} kg lost</small></div></div><div class="bar"><i style="width:${pct}%"></i></div>`;
+  el.innerHTML = head + row('Current pace (last 14 days)', recent) + row('Overall pace (since start)', overall) + need +
+    '<p class="note">Weeks and months are the same forecast – months = weeks ÷ 4.35. It updates as your weight changes.</p>';
+}
+
 // ---------- journey & weekly/monthly progress ----------
 let pmode = localStorage.getItem('mt2-pmode') || 'week';
 const buckets = () => { const s = S(); return [`<${s.goodMin}h`, `${s.goodMin}–<${s.goodMax}h`, `${s.goodMax}h+`]; };
@@ -406,7 +440,7 @@ function render() {
   const dates = rangeDates();
   document.querySelectorAll('.ranges button').forEach(b => b.classList.toggle('on', +b.dataset.r === rangeDays));
   document.querySelectorAll('.pmode button').forEach(b => b.classList.toggle('on', b.dataset.pm === pmode));
-  renderCards(dates); renderCharts(dates); renderProgress(); renderHistory(); hero(); renderStatus();
+  renderCards(dates); renderCharts(dates); renderProgress(); renderForecast(); renderHistory(); hero(); renderStatus();
 }
 
 // ---------- form ----------
@@ -479,14 +513,14 @@ document.querySelectorAll('.ranges button').forEach(b => b.onclick = () => { ran
 function fillSettings() {
   const s = S();
   $('s_target').value = s.target; $('s_base').value = s.base; $('s_goodMin').value = s.goodMin; $('s_goodMax').value = s.goodMax;
-  $('s_dinnerGoal').value = s.dinnerGoal; $('s_dinnerMax').value = s.dinnerMax; $('s_sleepBed').value = s.sleepBed; $('s_sleepWake').value = s.sleepWake;
+  $('s_dinnerGoal').value = s.dinnerGoal; $('s_dinnerMax').value = s.dinnerMax; $('s_targetDate').value = s.targetDate || ''; $('s_sleepBed').value = s.sleepBed; $('s_sleepWake').value = s.sleepWake;
 }
 $('saveTargets').onclick = () => {
   const v = id => parseFloat($(id).value);
   const n = { target: v('s_target'), base: v('s_base'), goodMin: v('s_goodMin'), goodMax: v('s_goodMax'), dinnerGoal: v('s_dinnerGoal'), dinnerMax: v('s_dinnerMax') };
   if (Object.values(n).some(isNaN)) return alert('Fill all target fields.');
   if (!$('s_sleepBed').value || !$('s_sleepWake').value || !sleepSpan($('s_sleepBed').value, $('s_sleepWake').value)) return alert('Set a valid goal bedtime and wake-up.');
-  data.settings = { ...n, sleepBed: $('s_sleepBed').value, sleepWake: $('s_sleepWake').value, updated: Date.now() }; commit(); fillForm();
+  data.settings = { ...n, targetDate: $('s_targetDate').value || '', sleepBed: $('s_sleepBed').value, sleepWake: $('s_sleepWake').value, updated: Date.now() }; commit(); fillForm();
 };
 $('saveSettings').onclick = () => {
   localStorage.setItem('mt-token', $('token').value.trim());
